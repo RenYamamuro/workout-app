@@ -26,30 +26,43 @@
 長辺640pxのJPEGに縮小してから `localStorage`（キー `workout-photos-v1`）に保存される。
 容量は全体で5MB程度が上限なので、入りきらない場合は使わない種目の写真を削除する。
 
-## 使い方
+## 公開URL
 
-Macでそのまま開くだけなら `index.html` をダブルクリックでも動く。
-iPhoneから使う場合はローカルサーバー経由が確実。
+https://renyamamuro.github.io/workout-app/
+
+OS・ブラウザを問わず開ける。更新は `git push` するだけで反映される（反映まで数十秒）。
+
+### ホーム画面 / デスクトップに追加
+
+- **iPhone (Safari)** — 共有ボタン → 「ホーム画面に追加」
+- **Android (Chrome)** — メニュー → 「ホーム画面に追加」
+- **PC (Chrome / Edge)** — アドレスバー右のインストールアイコン
+
+追加するとアドレスバーなしで起動し、Service Worker のおかげで
+**オフラインでも開ける**（ジムの電波が悪くても使える）。
+
+## 開発するとき
 
 ```bash
 python3 -m http.server 5173
 ```
 
-- Mac: http://localhost:5173
-- iPhone（同じWi-Fi）: `http://<MacのIPアドレス>:5173`
-  IPアドレスは `ipconfig getifaddr en0` で確認できる
+http://localhost:5173 を開く。localhost では Service Worker も動くので、
+公開時とほぼ同じ条件で確認できる。編集したら:
 
-### ホーム画面に追加
+```bash
+git add -A && git commit -m "変更内容" && git push
+```
 
-iPhoneのSafariで開く → 共有ボタン → 「ホーム画面に追加」。
-アドレスバーなしのアプリのように起動する。
-
-※ ホーム画面から常時使いたい場合は、Macを起動しなくて済むように
-GitHub Pages や Netlify などに置くのが次のステップ。
+※ `index.html` を直接ダブルクリックしても動くが、その場合 Service Worker と
+manifest は読み込まれない（機能そのものには影響しない）。
 
 ## ファイル構成
 
 - `index.html` — アプリ本体（HTML / CSS / JS すべて）
+- `manifest.json` — ホーム画面に追加したときの名前・アイコン・表示設定
+- `sw.js` — オフライン用の Service Worker（ネットワーク優先 + キャッシュ）
+- `icon-192.png` / `icon-512.png` / `apple-touch-icon.png` — アプリアイコン
   - `MENUS` … 種目マスタ。種目の追加・変更はここを編集する
   - `STORAGE_KEY` … localStorage のキー
   - 画面は `renderHome()` / `renderWorkout()` / `renderHistory()` の3つ
