@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111418">
+<meta name="description" content="A/B/C 3分割メニューのトレーニング記録アプリ">
+<!-- ホーム画面に追加したときの挙動（iOS / Android / デスクトップ） -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="筋トレ記録">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>筋トレ記録</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1a1d21;
+    --muted: #6b7280;
+    --line: #e3e6ea;
+    --accent: #2563eb;
+    --accent-weak: #eaf0ff;
+    --good: #15803d;
+    --good-weak: #e7f6ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111418;
+      --card: #1b1f25;
+      --text: #e8eaed;
+      --muted: #9aa3ad;
+      --line: #2b3138;
+      --accent: #5b8cff;
+      --accent-weak: #1d2740;
+      --good: #6ee7a0;
+      --good-weak: #16281e;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 0 40px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 "Hiragino Sans", "Yu Gothic UI", "Noto Sans JP", "Noto Sans CJK JP",
+                 Meiryo, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: max(env(safe-area-inset-top), 12px) 16px 12px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  header h1 { font-size: 17px; margin: 0; flex: 1; }
+  main { padding: 16px; max-width: 640px; margin: 0 auto; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .muted { color: var(--muted); font-size: 13px; }
+  .row { display: flex; align-items: center; gap: 8px; }
+
+  button {
+    font: inherit; cursor: pointer;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--text);
+    padding: 10px 14px;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.link { border: none; background: none; color: var(--accent); padding: 4px; }
+  button:active { opacity: .7; }
+
+  .menu-btn {
+    width: 100%; text-align: left; padding: 14px;
+    display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+  }
+  .menu-btn .badge {
+    width: 34px; height: 34px; flex: none;
+    border-radius: 9px; background: var(--accent-weak); color: var(--accent);
+    display: grid; place-items: center; font-weight: 700; font-size: 16px;
+  }
+  .menu-btn .t { flex: 1; }
+  .menu-btn .t b { display: block; font-size: 15px; }
+  .menu-btn .t span { font-size: 12px; color: var(--muted); }
+  .next-tag {
+    font-size: 11px; font-weight: 700; color: #fff; background: var(--accent);
+    padding: 3px 7px; border-radius: 999px;
+  }
+
+  /* --- 種目カードの上部（図解 + 種目名） --- */
+  .ex-top { display: flex; gap: 12px; margin-bottom: 10px; }
+  .ex-info { flex: 1; min-width: 0; }
+  .illust {
+    width: 68px; height: 68px; flex: none;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg);
+    overflow: hidden; padding: 0; cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .illust svg { width: 100%; height: 100%; display: block; fill: none;
+                stroke-linecap: round; stroke-linejoin: round; }
+  .illust img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .illust .s { stroke: var(--muted); stroke-width: 3; }   /* マシンの骨格 */
+  .illust .p { stroke: var(--text);  stroke-width: 3; }   /* 人 */
+  .illust .m { stroke: var(--accent); stroke-width: 4; }  /* 動く部分・負荷 */
+
+  .ex-head { display: flex; align-items: baseline; gap: 8px; }
+  .ex-head b { font-size: 15px; }
+  .ex-head .target { font-size: 12px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+  .prev { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .prev.none { font-style: italic; }
+  .hint {
+    font-size: 12px; color: var(--good); background: var(--good-weak);
+    border-radius: 8px; padding: 6px 8px; margin-top: 8px;
+  }
+
+  .set { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .set .no { width: 22px; font-size: 12px; color: var(--muted); }
+  .set input {
+    font: inherit; width: 100%; min-width: 0;
+    padding: 9px 8px; text-align: right;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--text);
+  }
+  .set .unit { font-size: 12px; color: var(--muted); width: 26px; }
+  .set .f { display: flex; align-items: center; gap: 4px; flex: 1; }
+
+  input[type="date"], textarea {
+    font: inherit; width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--text);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .save-bar {
+    position: sticky; bottom: 0;
+    padding: 12px 0 max(env(safe-area-inset-bottom), 12px);
+    background: linear-gradient(to bottom, transparent, var(--bg) 30%);
+  }
+  .save-bar button { width: 100%; padding: 14px; font-size: 16px; }
+
+  .log-head { display: flex; align-items: baseline; gap: 8px; }
+  .log-head b { font-size: 15px; }
+  .log-body { font-size: 13px; margin-top: 8px; line-height: 1.7; }
+  .log-body .n { color: var(--muted); }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+
+  /* --- 図解の拡大表示 --- */
+  .modal {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0, 0, 0, .55);
+    display: grid; place-items: center; padding: 16px;
+  }
+  .modal-card {
+    background: var(--card); border-radius: 14px; padding: 16px;
+    width: 100%; max-width: 360px;
+  }
+  .modal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .modal-head b { font-size: 16px; flex: 1; }
+  .illust.big {
+    width: 100%; height: auto; aspect-ratio: 1 / 1; max-width: 260px;
+    margin: 0 auto 12px; cursor: default;
+  }
+  .filebtn {
+    display: inline-block; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 14px; font-size: 14px;
+  }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <button id="backBtn" class="link" hidden>← 戻る</button>
+  <h1 id="title">筋トレ記録</h1>
+  <button id="historyBtn" class="link">履歴</button>
+</header>
+
+<main>
+  <!-- ホーム画面 -->
+  <section id="homeScreen">
+    <p class="muted" style="margin-top:0">A → B → C の順に、行く日に次のメニューを実施します。</p>
+    <div id="menuList"></div>
+    <div class="card">
+      <div class="muted" id="lastSummary"></div>
+    </div>
+  </section>
+
+  <!-- 記録画面 -->
+  <section id="workoutScreen" hidden>
+    <div class="card">
+      <label class="muted" for="dateInput">実施日</label>
+      <input type="date" id="dateInput" style="margin-top:6px">
+    </div>
+    <div id="exerciseList"></div>
+    <div class="card">
+      <label class="muted" for="memoInput">メモ（体調・筋肉痛・気づいたことなど）</label>
+      <textarea id="memoInput" placeholder="例）脚に筋肉痛が残っていたので軽め" style="margin-top:6px"></textarea>
+    </div>
+    <div class="save-bar">
+      <button class="primary" id="saveBtn">この内容で保存</button>
+    </div>
+  </section>
+
+  <!-- 履歴画面 -->
+  <section id="historyScreen" hidden>
+    <div id="logList"></div>
+  </section>
+</main>
+
+<!-- 図解の拡大 + 写真の登録 -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <b id="modalTitle"></b>
+      <button class="link" id="modalClose">閉じる</button>
+    </div>
+    <div class="illust big" id="modalIllust"></div>
+    <p class="muted" id="modalNote" style="margin-top:0"></p>
+    <div class="row">
+      <label class="filebtn">
+        📷 実物の写真を登録
+        <input type="file" accept="image/*" id="photoInput" hidden>
+      </label>
+      <button class="link" id="photoDelete" hidden>写真を削除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 種目マスタ =====================================================
+// target: "セット数×レップ数"。セット数の初期値と、増量判断の目安に使う。
+const MENUS = {
+  A: {
+    title: "プッシュ（胸・肩・三頭）+ 脚前面",
+    exercises: [
+      { name: "スミスマシンベンチプレス",       target: "3×8〜10",  note: "フリーウェイトと重量が違うので「スミス」と分けて記録する" },
+      { name: "アイソラテラルショルダープレス", target: "3×10",     note: "左右独立。左右差の修正に有利" },
+      { name: "ペクトラルフライ",               target: "3×12〜15", note: "胸の単関節種目。初回は軽めで軌道確認" },
+      { name: "レッグエクステンション",         target: "3×12〜15", note: "大腿四頭筋" },
+      { name: "ケーブルプレスダウン",           target: "2×12",     note: "三頭の単関節種目" },
+      { name: "アブドミナルクランチ",           target: "3×12〜15", note: "体幹は最後に" }
+    ]
+  },
+  B: {
+    title: "プル（背中・二頭）+ 脚後面",
+    exercises: [
+      { name: "ラットプルダウン",               target: "3×10〜12", note: "MAGグリップで握り方を変えられる" },
+      { name: "ローロー",                       target: "3×10〜12", note: "アイソラテラルDYローでも可。背中の厚み" },
+      { name: "アシストチン",                   target: "3×6〜10",  note: "補助を徐々に減らして自重懸垂へ" },
+      { name: "レッグカール",                   target: "3×12〜15", note: "ハムストリング" },
+      { name: "MTSバイセップカール",            target: "2×12",     note: "二頭の単関節種目" },
+      { name: "バックエクステンション",         target: "2×15",     note: "自重なら重量は空欄でOK" }
+    ]
+  },
+  C: {
+    title: "脚メイン + 補完",
+    exercises: [
+      { name: "V-スクワット",                   target: "3×10〜12", note: "脚の主力種目" },
+      { name: "シーテッドレッグプレス",         target: "3×12〜15", note: "重量の刻みを確認する" },
+      { name: "ヒップ＆グルート",               target: "3×12〜15", note: "臀部" },
+      { name: "ヒップアブダクション",           target: "2×15",     note: "中臀筋・股関節の安定性" },
+      { name: "アイソラテラルハイロー",         target: "3×10〜12", note: "背中の上部" },
+      { name: "ラットレイズ",                   target: "2×12〜15", note: "三角筋中部" },
+      { name: "トーソローテーション",           target: "2×15",     note: "腹斜筋・体幹の回旋" }
+    ]
+  }
+};
+const MENU_ORDER = ["A", "B", "C"];
+
+// ===== 種目の図解（SVG） ==============================================
+// s = マシンの骨格 / p = 人 / m = 動く部分・負荷（色つき）
+const SVG_OPEN = '<svg viewBox="0 0 100 100" aria-hidden="true">';
+const ART = {
+  "スミスマシンベンチプレス":
+    '<path class="s" d="M18 8v82M82 8v82M10 90h80"/>' +
+    '<path class="s" d="M28 72h48M36 72v18M68 72v18"/>' +
+    '<circle class="p" cx="70" cy="64" r="5"/>' +
+    '<path class="p" d="M65 68H42l-10 12M54 68l-2-16"/>' +
+    '<path class="m" d="M10 48h80M22 40v16M78 40v16"/>',
+
+  "アイソラテラルショルダープレス":
+    '<path class="s" d="M30 22v68M16 90h62"/>' +
+    '<path class="s" d="M52 46v32M52 78h22M74 78v10"/>' +
+    '<circle class="p" cx="58" cy="40" r="5"/>' +
+    '<path class="p" d="M58 46v28M58 74l16 4M57 52L45 34"/>' +
+    '<path class="m" d="M36 30h14M43 24v12"/>',
+
+  "ペクトラルフライ":
+    '<path class="s" d="M30 18v72M16 90h60"/>' +
+    '<path class="s" d="M54 44v34M54 78h20M74 78v10"/>' +
+    '<circle class="p" cx="60" cy="38" r="5"/>' +
+    '<path class="p" d="M60 44v30M60 74l14 4M59 50L46 46"/>' +
+    '<path class="m" d="M30 28v18M30 46h16M46 40v12"/>',
+
+  "レッグエクステンション":
+    '<path class="s" d="M26 30v60M14 90h72"/>' +
+    '<path class="s" d="M50 42v32M50 74h22M72 74v14"/>' +
+    '<circle class="p" cx="56" cy="36" r="5"/>' +
+    '<path class="p" d="M56 42v26M56 68h20M76 68l8-14"/>' +
+    '<path class="m" d="M80 50l8 6"/>' +
+    '<path class="m" d="M20 44h14v34H20zM20 56h14M20 66h14"/>',
+
+  "ケーブルプレスダウン":
+    '<path class="s" d="M32 10v80M14 90h72M32 14h12"/>' +
+    '<circle class="s" cx="44" cy="16" r="4"/>' +
+    '<path class="m" d="M44 20v32M34 52h20"/>' +
+    '<path class="m" d="M22 44h14v34H22zM22 56h14M22 66h14"/>' +
+    '<circle class="p" cx="66" cy="30" r="5"/>' +
+    '<path class="p" d="M66 36v26M66 62l-6 26M66 62l8 26M63 42l-11 10"/>',
+
+  "アブドミナルクランチ":
+    '<path class="s" d="M32 24v66M18 90h60"/>' +
+    '<path class="s" d="M58 50v26M58 76h20M78 76v12"/>' +
+    '<circle class="p" cx="60" cy="44" r="5"/>' +
+    '<path class="p" d="M59 50l-2 20M57 70h20M58 52L44 40"/>' +
+    '<path class="m" d="M34 36h12M40 30v12"/>',
+
+  "ラットプルダウン":
+    '<path class="s" d="M24 10v80M14 90h72M24 14h14"/>' +
+    '<circle class="s" cx="38" cy="16" r="4"/>' +
+    '<path class="m" d="M38 20v16M22 36h32"/>' +
+    '<path class="m" d="M14 46h12v32H14zM14 58h12M14 68h12"/>' +
+    '<path class="s" d="M58 64h22M64 64v20"/>' +
+    '<circle class="p" cx="62" cy="46" r="5"/>' +
+    '<path class="p" d="M62 52v10M62 62h16M78 62v12M58 44l-14-8"/>',
+
+  "ローロー":
+    '<path class="s" d="M26 30v60M14 90h72"/>' +
+    '<path class="s" d="M54 46v30M54 76h22M76 76v12"/>' +
+    '<circle class="p" cx="60" cy="40" r="5"/>' +
+    '<path class="p" d="M60 46v28M60 74l16 4M56 52l-24-6"/>' +
+    '<path class="m" d="M30 42h22M32 38v10"/>' +
+    '<path class="m" d="M16 50h12v30H16zM16 60h12M16 70h12"/>',
+
+  "アシストチン":
+    '<path class="s" d="M24 14v76M76 14v76M14 90h72"/>' +
+    '<path class="m" d="M24 14h52"/>' +
+    '<circle class="p" cx="50" cy="42" r="5"/>' +
+    '<path class="p" d="M50 48v16M46 38l-8-22M54 38l8-22M50 64l8 6"/>' +
+    '<path class="m" d="M38 68h24"/>',
+
+  "レッグカール":
+    '<path class="s" d="M26 30v60M14 90h72"/>' +
+    '<path class="s" d="M48 42v32M48 74h24"/>' +
+    '<circle class="p" cx="54" cy="36" r="5"/>' +
+    '<path class="p" d="M54 42v26M54 68h20M74 68l4 14"/>' +
+    '<path class="m" d="M72 58h14M74 82l10 4"/>' +
+    '<path class="m" d="M18 44h14v34H18zM18 56h14M18 66h14"/>',
+
+  "MTSバイセップカール":
+    '<path class="s" d="M28 44v46M16 90h60"/>' +
+    '<path class="s" d="M58 58v20M58 78h18M76 78v10"/>' +
+    '<circle class="p" cx="62" cy="52" r="5"/>' +
+    '<path class="p" d="M62 58v18M62 76l14 2M59 60L40 50"/>' +
+    '<path class="m" d="M32 54l22 10M32 44h12"/>',
+
+  "バックエクステンション":
+    '<path class="s" d="M16 92h68M30 92V74M30 74l30-22"/>' +
+    '<path class="m" d="M23 84h14M50 62l12-8"/>' +
+    '<path class="p" d="M34 82l22-16"/>' +
+    '<path class="p" d="M58 64v16"/>' +
+    '<circle class="p" cx="58" cy="85" r="5"/>',
+
+  "V-スクワット":
+    '<path class="s" d="M18 88h64M28 88L66 28M66 28l10 8"/>' +
+    '<path class="m" d="M42 68l16-10"/>' +
+    '<circle class="p" cx="48" cy="60" r="5"/>' +
+    '<path class="p" d="M48 66v10M48 76l-8 12M48 76l10 12"/>',
+
+  "シーテッドレッグプレス":
+    '<path class="s" d="M20 38v42M12 86h76"/>' +
+    '<path class="s" d="M34 46v28M34 74h24"/>' +
+    '<circle class="p" cx="40" cy="40" r="5"/>' +
+    '<path class="p" d="M40 46v22M40 68h20M60 68l12-16"/>' +
+    '<path class="m" d="M76 34v32"/>',
+
+  "ヒップ＆グルート":
+    '<path class="s" d="M26 26v64M14 90h72"/>' +
+    '<path class="s" d="M44 54h22M44 54v20"/>' +
+    '<circle class="p" cx="52" cy="44" r="5"/>' +
+    '<path class="p" d="M52 50v18M52 68l-8 20M52 68l16 10"/>' +
+    '<path class="m" d="M66 76l12 6"/>' +
+    '<path class="m" d="M30 40h12v30H30zM30 52h12M30 62h12"/>',
+
+  "ヒップアブダクション":
+    '<path class="s" d="M42 48h16v28H42zM50 76v12M34 90h32"/>' +
+    '<circle class="p" cx="50" cy="34" r="6"/>' +
+    '<path class="p" d="M50 40v10M50 56l-16 14M50 56l16 14"/>' +
+    '<path class="m" d="M26 56v20M74 56v20"/>',
+
+  "アイソラテラルハイロー":
+    '<path class="s" d="M26 18v72M14 90h64"/>' +
+    '<path class="s" d="M54 48v28M54 76h22M76 76v12"/>' +
+    '<circle class="p" cx="60" cy="42" r="5"/>' +
+    '<path class="p" d="M60 48v26M60 74l16 4M56 48l-18-8"/>' +
+    '<path class="m" d="M30 24l18 14M30 24v12"/>',
+
+  "ラットレイズ":
+    '<path class="s" d="M44 52h12v24H44zM50 76v12M36 90h28"/>' +
+    '<circle class="p" cx="50" cy="34" r="6"/>' +
+    '<path class="p" d="M50 40v12M44 44l-14 6M56 44l14 6"/>' +
+    '<path class="m" d="M24 44v18M76 44v18"/>',
+
+  "トーソローテーション":
+    '<path class="s" d="M44 58h12v18H44zM50 76v12M36 90h28"/>' +
+    '<circle class="p" cx="50" cy="32" r="6"/>' +
+    '<path class="p" d="M50 38v20M50 44l14-4M50 47l-13 4"/>' +
+    '<path class="m" d="M32 54l36-14M68 34v12"/>'
+};
+const ART_FALLBACK = '<path class="s" d="M20 40v20M80 40v20M30 32v36M70 32v36M30 50h40"/>';
+
+// ===== データの保存と読み込み =========================================
+const STORAGE_KEY = "workout-logs-v1";   // トレーニング記録
+const PHOTO_KEY   = "workout-photos-v1"; // 種目ごとのマシン写真
+
+function loadLogs() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch (e) { return []; }
+}
+function saveLogs(logs) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+}
+function loadPhotos() {
+  try { return JSON.parse(localStorage.getItem(PHOTO_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function savePhotos(photos) {
+  try {
+    localStorage.setItem(PHOTO_KEY, JSON.stringify(photos));
+    return true;
+  } catch (e) {
+    alert("保存容量がいっぱいです。使っていない種目の写真を削除してください。");
+    return false;
+  }
+}
+// 日付の新しい順に並べた配列を返す
+function sortedLogs() {
+  return loadLogs().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+// 種目名から、直近の記録（セット配列）を探す
+function findLastRecord(exerciseName) {
+  for (const log of sortedLogs()) {
+    const found = (log.exercises || []).find(ex => ex.name === exerciseName);
+    if (found && found.sets.length > 0) return { date: log.date, sets: found.sets };
+  }
+  return null;
+}
+// 写真があればそれを、なければ図解を返す
+function artHTML(name, photos) {
+  const photo = photos[name];
+  if (photo) return '<img src="' + photo + '" alt="' + name + '">';
+  return SVG_OPEN + (ART[name] || ART_FALLBACK) + '</svg>';
+}
+
+// ===== 小さなユーティリティ ===========================================
+// "3×8〜10" → { sets: 3, repMax: 10 }
+function parseTarget(target) {
+  const [setPart, repPart] = target.split("×");
+  const reps = repPart.split("〜").map(Number);
+  return { sets: Number(setPart), repMax: Math.max(...reps) };
+}
+function todayString() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function formatDate(iso) {
+  const [y, m, d] = iso.split("-");
+  const week = "日月火水木金土"[new Date(iso + "T00:00:00").getDay()];
+  return Number(m) + "/" + Number(d) + "（" + week + "）";
+}
+// セット配列 → "30kg × 10,10,8"（重量が混在する場合は "30kg×10, 32.5kg×8"）
+function formatSets(sets) {
+  const weights = [...new Set(sets.map(s => s.weight))];
+  if (weights.length === 1) {
+    const w = weights[0] === null ? "自重" : weights[0] + "kg";
+    return w + " × " + sets.map(s => s.reps).join(",");
+  }
+  return sets.map(s => (s.weight === null ? "自重" : s.weight + "kg") + "×" + s.reps).join(", ");
+}
+function totalVolume(exercises) {
+  let v = 0;
+  for (const ex of exercises) for (const s of ex.sets) v += (s.weight || 0) * s.reps;
+  return v;
+}
+
+// ===== 画面の切り替え =================================================
+const screens = {
+  home:    document.getElementById("homeScreen"),
+  workout: document.getElementById("workoutScreen"),
+  history: document.getElementById("historyScreen")
+};
+const titleEl    = document.getElementById("title");
+const backBtn    = document.getElementById("backBtn");
+const historyBtn = document.getElementById("historyBtn");
+
+function showScreen(name, title) {
+  for (const key in screens) screens[key].hidden = (key !== name);
+  titleEl.textContent = title;
+  backBtn.hidden = (name === "home");
+  historyBtn.hidden = (name !== "home");
+  window.scrollTo(0, 0);
+}
+backBtn.onclick = () => renderHome();
+historyBtn.onclick = () => renderHistory();
+
+// ===== ホーム画面 =====================================================
+function nextMenuId() {
+  const logs = sortedLogs();
+  if (logs.length === 0) return "A";
+  const i = MENU_ORDER.indexOf(logs[0].menu);
+  return MENU_ORDER[(i + 1) % MENU_ORDER.length];
+}
+
+function renderHome() {
+  const next = nextMenuId();
+  const list = document.getElementById("menuList");
+  list.innerHTML = "";
+
+  for (const id of MENU_ORDER) {
+    const menu = MENUS[id];
+    const btn = document.createElement("button");
+    btn.className = "menu-btn card";
+    btn.innerHTML =
+      '<span class="badge">' + id + '</span>' +
+      '<span class="t"><b>メニュー' + id + '</b><span>' + menu.title + '</span></span>' +
+      (id === next ? '<span class="next-tag">次はこれ</span>' : '');
+    btn.onclick = () => renderWorkout(id);
+    list.appendChild(btn);
+  }
+
+  const logs = sortedLogs();
+  const summary = document.getElementById("lastSummary");
+  if (logs.length === 0) {
+    summary.textContent = "まだ記録がありません。メニューAから始めましょう。";
+  } else {
+    const last = logs[0];
+    summary.textContent =
+      "前回：" + formatDate(last.date) + " メニュー" + last.menu +
+      "（総挙上量 " + totalVolume(last.exercises).toLocaleString() + "kg） / 記録 " + logs.length + "件";
+  }
+  showScreen("home", "筋トレ記録");
+}
+
+// ===== 記録画面 =======================================================
+let draft = null;      // 入力中のワークアウト
+let currentMenu = null;
+
+function renderWorkout(menuId) {
+  const menu = MENUS[menuId];
+  currentMenu = menu;
+  draft = {
+    date: todayString(),
+    menu: menuId,
+    memo: "",
+    exercises: menu.exercises.map(def => {
+      const last = findLastRecord(def.name);
+      const setCount = parseTarget(def.target).sets;
+      // 前回と同じ重量を初期値に入れておく（毎回打ち直さなくて済む）
+      const prefill = last ? last.sets[0].weight : "";
+      return {
+        name: def.name,
+        sets: Array.from({ length: setCount }, () => ({ weight: prefill, reps: "" }))
+      };
+    })
+  };
+
+  const dateInput = document.getElementById("dateInput");
+  dateInput.value = draft.date;
+  dateInput.onchange = e => { draft.date = e.target.value; };
+  const memoInput = document.getElementById("memoInput");
+  memoInput.value = "";
+  memoInput.oninput = e => { draft.memo = e.target.value; };
+
+  drawExercises();
+  showScreen("workout", "メニュー" + menuId);
+}
+
+function drawExercises() {
+  const container = document.getElementById("exerciseList");
+  const photos = loadPhotos();
+  container.innerHTML = "";
+
+  currentMenu.exercises.forEach((def, exIndex) => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    // --- 図解 + 種目名 ---
+    const top = document.createElement("div");
+    top.className = "ex-top";
+
+    const art = document.createElement("button");
+    art.className = "illust";
+    art.title = "タップで拡大 / 写真を登録";
+    art.innerHTML = artHTML(def.name, photos);
+    art.onclick = () => openArtModal(def);
+    top.appendChild(art);
+
+    const info = document.createElement("div");
+    info.className = "ex-info";
+    const last = findLastRecord(def.name);
+    info.innerHTML =
+      '<div class="ex-head"><b>' + def.name + '</b>' +
+      '<span class="target">' + def.target + '</span></div>' +
+      '<div class="prev' + (last ? '' : ' none') + '">' +
+      (last ? "前回 " + formatDate(last.date) + "　" + formatSets(last.sets)
+            : (def.note || "初回：軽めの重量で軌道を確認")) +
+      '</div>';
+    top.appendChild(info);
+    card.appendChild(top);
+
+    const setsBox = document.createElement("div");
+    card.appendChild(setsBox);
+
+    const hint = document.createElement("div");
+    hint.className = "hint";
+    hint.hidden = true;
+    card.appendChild(hint);
+
+    // 目標レップを全セット達成できたら増量をすすめる
+    function updateHint() {
+      const { sets: targetSets, repMax } = parseTarget(def.target);
+      const done = draft.exercises[exIndex].sets.filter(s => s.reps !== "" && Number(s.reps) > 0);
+      const cleared = done.length >= targetSets && done.every(s => Number(s.reps) >= repMax);
+      hint.hidden = !cleared;
+      if (cleared) hint.textContent = "全セット完遂 ✓ 次回は 2.5〜5kg 上げてOK";
+    }
+
+    function drawSets() {
+      setsBox.innerHTML = "";
+      draft.exercises[exIndex].sets.forEach((set, setIndex) => {
+        const row = document.createElement("div");
+        row.className = "set";
+
+        const no = document.createElement("span");
+        no.className = "no";
+        no.textContent = (setIndex + 1) + ".";
+        row.appendChild(no);
+
+        const wField = document.createElement("span");
+        wField.className = "f";
+        const w = document.createElement("input");
+        w.type = "number"; w.inputMode = "decimal"; w.step = "0.5"; w.min = "0";
+        w.placeholder = "重量"; w.value = set.weight;
+        w.oninput = () => { set.weight = w.value; };
+        wField.appendChild(w);
+        const wUnit = document.createElement("span");
+        wUnit.className = "unit"; wUnit.textContent = "kg";
+        wField.appendChild(wUnit);
+        row.appendChild(wField);
+
+        const rField = document.createElement("span");
+        rField.className = "f";
+        const r = document.createElement("input");
+        r.type = "number"; r.inputMode = "numeric"; r.min = "0";
+        r.placeholder = "回数"; r.value = set.reps;
+        r.oninput = () => { set.reps = r.value; updateHint(); };
+        rField.appendChild(r);
+        const rUnit = document.createElement("span");
+        rUnit.className = "unit"; rUnit.textContent = "回";
+        rField.appendChild(rUnit);
+        row.appendChild(rField);
+
+        const del = document.createElement("button");
+        del.className = "link"; del.textContent = "✕"; del.title = "このセットを削除";
+        del.onclick = () => {
+          draft.exercises[exIndex].sets.splice(setIndex, 1);
+          drawSets(); updateHint();
+        };
+        row.appendChild(del);
+
+        setsBox.appendChild(row);
+      });
+
+      const add = document.createElement("button");
+      add.className = "link"; add.textContent = "＋ セットを追加";
+      add.onclick = () => {
+        const sets = draft.exercises[exIndex].sets;
+        const lastSet = sets[sets.length - 1];
+        sets.push({ weight: lastSet ? lastSet.weight : "", reps: "" });
+        drawSets(); updateHint();
+      };
+      setsBox.appendChild(add);
+    }
+
+    drawSets();
+    container.appendChild(card);
+  });
+}
+
+document.getElementById("saveBtn").onclick = () => {
+  // 回数が入っているセットだけを残す
+  const exercises = draft.exercises
+    .map(ex => ({
+      name: ex.name,
+      sets: ex.sets
+        .filter(s => s.reps !== "" && Number(s.reps) > 0)
+        .map(s => ({
+          weight: s.weight === "" ? null : Number(s.weight),
+          reps: Number(s.reps)
+        }))
+    }))
+    .filter(ex => ex.sets.length > 0);
+
+  if (exercises.length === 0) {
+    alert("記録するセットがありません。回数を入力してください。");
+    return;
+  }
+
+  const logs = loadLogs();
+  logs.push({
+    id: Date.now(),
+    date: draft.date,
+    menu: draft.menu,
+    memo: draft.memo,
+    exercises: exercises
+  });
+  saveLogs(logs);
+  renderHome();
+};
+
+// ===== 図解の拡大 + 写真の登録 ========================================
+const modal        = document.getElementById("modal");
+const modalTitle   = document.getElementById("modalTitle");
+const modalIllust  = document.getElementById("modalIllust");
+const modalNote    = document.getElementById("modalNote");
+const photoInput   = document.getElementById("photoInput");
+const photoDelete  = document.getElementById("photoDelete");
+let modalExercise  = null;
+
+function openArtModal(def) {
+  modalExercise = def;
+  drawModal();
+  modal.hidden = false;
+}
+function drawModal() {
+  const photos = loadPhotos();
+  const hasPhoto = !!photos[modalExercise.name];
+  modalTitle.textContent = modalExercise.name;
+  modalIllust.innerHTML = artHTML(modalExercise.name, photos);
+  modalNote.textContent = hasPhoto
+    ? modalExercise.note
+    : (modalExercise.note ? modalExercise.note + " / " : "") +
+      "ジムで実物の写真を撮って登録すると、この図の代わりに表示されます。";
+  photoDelete.hidden = !hasPhoto;
+}
+function closeModal() {
+  modal.hidden = true;
+  modalExercise = null;
+}
+document.getElementById("modalClose").onclick = closeModal;
+modal.onclick = e => { if (e.target === modal) closeModal(); };
+
+// 選んだ画像を縮小してから localStorage に保存する（そのままだと容量を超える）
+photoInput.onchange = () => {
+  const file = photoInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 640;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width  = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const photos = loadPhotos();
+      photos[modalExercise.name] = canvas.toDataURL("image/jpeg", 0.7);
+      if (savePhotos(photos)) {
+        drawModal();
+        drawExercises();
+      }
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+  photoInput.value = ""; // 同じ写真を選び直せるようにリセット
+};
+
+photoDelete.onclick = () => {
+  const photos = loadPhotos();
+  delete photos[modalExercise.name];
+  savePhotos(photos);
+  drawModal();
+  drawExercises();
+};
+
+// ===== 履歴画面 =======================================================
+function renderHistory() {
+  const container = document.getElementById("logList");
+  container.innerHTML = "";
+  const logs = sortedLogs();
+
+  if (logs.length === 0) {
+    container.innerHTML = '<p class="empty">まだ記録がありません。</p>';
+  }
+
+  for (const log of logs) {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const head = document.createElement("div");
+    head.className = "log-head";
+    head.innerHTML =
+      '<b>' + formatDate(log.date) + ' メニュー' + log.menu + '</b>' +
+      '<span class="muted" style="margin-left:auto">' + totalVolume(log.exercises).toLocaleString() + 'kg</span>';
+    card.appendChild(head);
+
+    const body = document.createElement("div");
+    body.className = "log-body";
+    body.innerHTML = log.exercises
+      .map(ex => '<div><span class="n">' + ex.name + '</span> ' + formatSets(ex.sets) + '</div>')
+      .join("");
+    card.appendChild(body);
+
+    if (log.memo) {
+      const memo = document.createElement("div");
+      memo.className = "muted";
+      memo.style.marginTop = "8px";
+      memo.textContent = "メモ：" + log.memo;
+      card.appendChild(memo);
+    }
+
+    const del = document.createElement("button");
+    del.className = "link";
+    del.textContent = "この記録を削除";
+    del.style.marginTop = "6px";
+    del.onclick = () => {
+      if (!confirm(formatDate(log.date) + " の記録を削除しますか？")) return;
+      saveLogs(loadLogs().filter(l => l.id !== log.id));
+      renderHistory();
+    };
+    card.appendChild(del);
+
+    container.appendChild(card);
+  }
+  showScreen("history", "履歴");
+}
+
+// ===== 起動 ===========================================================
+renderHome();
+
+// オフラインでも開けるようにする（file:// で開いた場合は登録できないので黙って諦める）
+if ("serviceWorker" in navigator &&
+    (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
