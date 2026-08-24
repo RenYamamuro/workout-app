@@ -199,6 +199,22 @@
     <div class="card">
       <div class="muted" id="lastSummary"></div>
     </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:6px">
+        <b style="font-size:15px">データ</b>
+        <span class="muted" id="storageInfo" style="margin-left:auto"></span>
+      </div>
+      <p class="muted" id="dataSummary" style="margin:0 0 10px"></p>
+      <div class="row">
+        <button id="exportBtn">📥 書き出し</button>
+        <label class="filebtn">
+          📤 読み込み
+          <input type="file" accept="application/json,.json" id="importInput" hidden>
+        </label>
+      </div>
+      <p class="muted" id="persistNote" style="margin:10px 0 0"></p>
+    </div>
   </section>
 
   <!-- 記録画面 -->
@@ -555,8 +571,103 @@ function renderHome() {
       "前回：" + formatDate(last.date) + " メニュー" + last.menu +
       "（総挙上量 " + totalVolume(last.exercises).toLocaleString() + "kg） / 記録 " + logs.length + "件";
   }
+  updateDataCard();
   showScreen("home", "筋トレ記録");
 }
+
+// ===== データの書き出し・読み込み =====================================
+const dataSummary = document.getElementById("dataSummary");
+const storageInfo = document.getElementById("storageInfo");
+const persistNote = document.getElementById("persistNote");
+
+async function updateDataCard() {
+  const logs = loadLogs();
+  const photoCount = Object.keys(loadPhotos()).length;
+  dataSummary.textContent =
+    "記録 " + logs.length + "件 / マシン写真 " + photoCount + "枚" +
+    "（このブラウザの中だけに保存されています）";
+
+  if (navigator.storage && navigator.storage.estimate) {
+    const est = await navigator.storage.estimate();
+    storageInfo.textContent = Math.round((est.usage || 0) / 1024).toLocaleString() + " KB";
+  }
+}
+
+// ブラウザに「容量が足りなくなってもこのデータは消さないで」と申請する
+async function requestPersistentStorage() {
+  if (!(navigator.storage && navigator.storage.persist)) {
+    persistNote.textContent = "定期的に書き出してバックアップを取ってください。";
+    return;
+  }
+  const granted = await navigator.storage.persisted() || await navigator.storage.persist();
+  persistNote.textContent = granted
+    ? "✓ このブラウザがデータを保持する設定になっています。"
+    : "※ 容量不足時にブラウザがデータを消す可能性があります。定期的に書き出してください。";
+}
+
+document.getElementById("exportBtn").onclick = () => {
+  const data = {
+    app: "workout-log",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    logs: loadLogs(),
+    photos: loadPhotos()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "workout-backup-" + todayString() + ".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+document.getElementById("importInput").onchange = event => {
+  const file = event.target.files[0];
+  event.target.value = "";   // 同じファイルを選び直せるようにする
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try {
+      data = JSON.parse(reader.result);
+    } catch (e) {
+      alert("読み込めませんでした。書き出したJSONファイルを選んでください。");
+      return;
+    }
+    if (!data || !Array.isArray(data.logs)) {
+      alert("このアプリのバックアップファイルではないようです。");
+      return;
+    }
+
+    // 既にある記録はそのまま。同じidが無いものだけを足す（マージ）
+    const current = loadLogs();
+    const known = new Set(current.map(l => l.id));
+    const newLogs = data.logs.filter(l => l && !known.has(l.id));
+
+    const photos = loadPhotos();
+    let newPhotos = 0;
+    for (const name in (data.photos || {})) {
+      if (!photos[name]) { photos[name] = data.photos[name]; newPhotos++; }
+    }
+
+    if (newLogs.length === 0 && newPhotos === 0) {
+      alert("追加できる新しいデータはありませんでした。");
+      return;
+    }
+    if (!confirm("記録 " + newLogs.length + "件、写真 " + newPhotos + "枚を追加します。\n" +
+                 "今ある記録は消えません。よろしいですか？")) return;
+
+    saveLogs(current.concat(newLogs));
+    savePhotos(photos);
+    renderHome();
+    alert("読み込みました。");
+  };
+  reader.readAsText(file);
+};
 
 // ===== 記録画面 =======================================================
 let draft = null;      // 入力中のワークアウト
@@ -857,6 +968,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 renderHome();
+requestPersistentStorage();
 
 // オフラインでも開けるようにする（file:// で開いた場合は登録できないので黙って諦める）
 if ("serviceWorker" in navigator &&
