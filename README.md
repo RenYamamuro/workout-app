@@ -113,7 +113,13 @@ manifest は読み込まれない（機能そのものには影響しない）�
 iPhoneのChromeとPCのChromeも別物（Chromeアカウントの同期対象外）。
 そのため、**記録をつける端末とブラウザは1つに固定する**のが前提。
 
-刻み幅の設定（`workout-steps-v1`）は端末ごとのローカル設定で、クラウド同期の対象外。
+刻み幅（`workout-steps-v1`）、体重（`workout-bodyweight-v1`）、表示テーマ（`workout-theme-v1`）は
+端末ごとのローカル設定で、クラウド同期の対象外。
+
+**表示テーマ**は 自動（OSに従う）/ ライト / ダーク の3択。CSS変数を
+`:root`（ライト）、`@media (prefers-color-scheme: dark) の :root:not([data-theme="light"])`、
+`:root[data-theme="dark"]` の3か所で定義し、明示指定がOSの設定より優先されるようにしている。
+描画前にちらつかないよう、`<head>` のインラインスクリプトで最初に `data-theme` を当てている。
 
 起動時に `navigator.storage.persist()` でブラウザに永続化を申請している。
 Chromeはインストール済み（ホーム画面に追加済み）のサイトには基本的に許可する。
