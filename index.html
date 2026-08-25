@@ -242,6 +242,46 @@
     border: 1px solid var(--line); border-radius: 10px;
     padding: 10px 14px; font-size: 14px;
   }
+  /* --- 画面遷移。macOS/iOSの減速カーブに合わせている --- */
+  @keyframes push-in {   /* 奥へ進む（ホーム → 記録・履歴・設定） */
+    from { opacity: 0; transform: translateX(26px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes pop-in {    /* 手前へ戻る */
+    from { opacity: 0; transform: translateX(-26px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes title-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes sheet-in {  /* macOSのシートのように、少し上から降りてくる */
+    from { opacity: 0; transform: translateY(-14px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes sheet-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: translateY(-10px) scale(.98); }
+  }
+  @keyframes backdrop-in  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+
+  .push-in { animation: push-in .28s cubic-bezier(.32,.72,0,1); }
+  .pop-in  { animation: pop-in  .28s cubic-bezier(.32,.72,0,1); }
+  #title.changed { animation: title-in .28s ease-out; }
+
+  .modal { animation: backdrop-in .2s ease-out; }
+  .modal .modal-card { animation: sheet-in .28s cubic-bezier(.32,.72,0,1); }
+  .modal.closing { animation: backdrop-out .18s ease-in forwards; }
+  .modal.closing .modal-card { animation: sheet-out .18s ease-in forwards; }
+
+  /* 動きを減らす設定にしている場合は、アニメーションを止める */
+  @media (prefers-reduced-motion: reduce) {
+    .push-in, .pop-in, #title.changed,
+    .modal, .modal .modal-card,
+    .modal.closing, .modal.closing .modal-card { animation: none; }
+  }
+
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -737,13 +777,33 @@ const backBtn    = document.getElementById("backBtn");
 const historyBtn = document.getElementById("historyBtn");
 const settingsBtn = document.getElementById("settingsBtn");
 
+// ホームを起点(0)、その先の画面を(1)として、進む/戻るの向きを決める
+const SCREEN_DEPTH = { home: 0, workout: 1, history: 1, settings: 1 };
+let currentScreen = "home";
+
 function showScreen(name, title) {
+  const isFirst = (name === currentScreen && name === "home");
+  const forward = SCREEN_DEPTH[name] > SCREEN_DEPTH[currentScreen];
+
   for (const key in screens) screens[key].hidden = (key !== name);
   titleEl.textContent = title;
   backBtn.hidden = (name === "home");
   historyBtn.hidden = (name !== "home");
   settingsBtn.hidden = (name !== "home");
   window.scrollTo(0, 0);
+
+  if (!isFirst) {
+    replay(screens[name], forward ? "push-in" : "pop-in");
+    replay(titleEl, "changed");
+  }
+  currentScreen = name;
+}
+
+// 同じアニメーションを繰り返し再生するには、一度外して再描画を挟む必要がある
+function replay(el, className) {
+  el.classList.remove(className);
+  void el.offsetWidth;
+  el.classList.add(className);
 }
 backBtn.onclick = () => renderHome();
 historyBtn.onclick = () => renderHistory();
@@ -1283,8 +1343,15 @@ function drawModalHistory() {
   box.appendChild(footer);
 }
 function closeModal() {
-  modal.hidden = true;
-  modalExercise = null;
+  modal.classList.add("closing");
+  const finish = () => {
+    modal.hidden = true;
+    modal.classList.remove("closing");
+    modalExercise = null;
+  };
+  // アニメーションを切っている環境では animationend が来ないので保険をかける
+  const timer = setTimeout(finish, 260);
+  modal.addEventListener("animationend", () => { clearTimeout(timer); finish(); }, { once: true });
 }
 document.getElementById("modalClose").onclick = closeModal;
 modal.onclick = e => { if (e.target === modal) closeModal(); };
@@ -1392,7 +1459,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-25.3";
+const APP_VERSION = "2026-08-25.4";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 applyTheme(loadTheme());
