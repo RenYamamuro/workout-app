@@ -13,10 +13,10 @@ const firebaseConfig = {
   projectId: "workout-app-27d33",
   storageBucket: "workout-app-27d33.firebasestorage.app",
   messagingSenderId: "855945464580",
-  appId: "APPID_未設定"
+  appId: "1:855945464580:web:4d71627edc88e10fcbde51"
 };
 
-const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
+const SDK = "https://www.gstatic.com/firebasejs/12.18.0/";
 const LOGS_KEY = "workout-logs-v1";
 const PHOTOS_KEY = "workout-photos-v1";
 
