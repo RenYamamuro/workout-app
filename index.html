@@ -189,6 +189,7 @@
   .modal-card {
     background: var(--card); border-radius: 14px; padding: 16px;
     width: 100%; max-width: 360px;
+    max-height: 85vh; overflow-y: auto;
   }
   .modal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .modal-head b { font-size: 16px; flex: 1; }
@@ -196,6 +197,17 @@
     width: 100%; height: auto; aspect-ratio: 1 / 1; max-width: 260px;
     margin: 0 auto 12px; cursor: default;
   }
+  .hist { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .hist h4 { font-size: 13px; margin: 0 0 4px; color: var(--muted); font-weight: 600; }
+  .hist-row {
+    display: flex; gap: 8px; align-items: baseline;
+    font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--line);
+  }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-row .d { color: var(--muted); flex: none; width: 74px; }
+  .hist-row .v { flex: 1; min-width: 0; }
+  .hist-row .e { flex: none; color: var(--muted); font-size: 12px; }
+  .hist-row.best .e { color: var(--good); font-weight: 700; }
   .filebtn {
     display: inline-block; cursor: pointer;
     border: 1px solid var(--line); border-radius: 10px;
@@ -296,6 +308,7 @@
       </label>
       <button class="link" id="photoDelete" hidden>写真を削除</button>
     </div>
+    <div class="hist" id="modalHistory"></div>
   </div>
 </div>
 
@@ -567,6 +580,28 @@ function artHTML(name, photos) {
   const photo = photos[name];
   if (photo) return '<img src="' + photo + '" alt="' + name + '">';
   return SVG_OPEN + (ART[name] || ART_FALLBACK) + '</svg>';
+}
+
+// 種目名から、メニュー内の定義（目標レップ・注記など）を探す
+function findExerciseDef(name) {
+  for (const id of MENU_ORDER) {
+    const found = MENUS[id].exercises.find(e => e.name === name);
+    if (found) return found;
+  }
+  return { name: name, target: "", note: "" };
+}
+
+// その種目の記録だけを、新しい順に取り出す
+function exerciseHistory(name) {
+  const rows = [];
+  for (const log of sortedLogs()) {
+    for (const ex of log.exercises) {
+      if (ex.name !== name) continue;
+      const best = bestOfSets(ex.sets);
+      rows.push({ date: log.date, sets: ex.sets, est: best ? best.value : null });
+    }
+  }
+  return rows;
 }
 
 // ===== 1RM推定 ========================================================
@@ -1083,6 +1118,49 @@ function drawModal() {
     : (modalExercise.note ? modalExercise.note + " / " : "") +
       "ジムで実物の写真を撮って登録すると、この図の代わりに表示されます。";
   photoDelete.hidden = !hasPhoto;
+  drawModalHistory();
+}
+
+const MAX_HISTORY_ROWS = 30;
+
+function drawModalHistory() {
+  const box = document.getElementById("modalHistory");
+  const rows = exerciseHistory(modalExercise.name);
+  box.innerHTML = "";
+
+  const heading = document.createElement("h4");
+  heading.textContent = "この種目の記録";
+  box.appendChild(heading);
+
+  if (rows.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.style.margin = "0";
+    empty.textContent = "まだ記録がありません。";
+    box.appendChild(empty);
+    return;
+  }
+
+  const bestValue = Math.max(...rows.map(r => r.est || 0));
+
+  rows.slice(0, MAX_HISTORY_ROWS).forEach(row => {
+    const isBest = row.est !== null && row.est === bestValue;
+    const el = document.createElement("div");
+    el.className = "hist-row" + (isBest ? " best" : "");
+    el.innerHTML =
+      '<span class="d">' + formatDate(row.date) + '</span>' +
+      '<span class="v">' + formatSets(row.sets) + '</span>' +
+      '<span class="e">' + (row.est !== null ? row.est + "kg" + (isBest ? " ★" : "") : "") + '</span>';
+    box.appendChild(el);
+  });
+
+  const footer = document.createElement("p");
+  footer.className = "muted";
+  footer.style.margin = "8px 0 0";
+  footer.textContent = rows.length > MAX_HISTORY_ROWS
+    ? "右端は推定1RM。★が自己ベスト。直近" + MAX_HISTORY_ROWS + "件を表示（全" + rows.length + "件）"
+    : "右端は推定1RM。★が自己ベストです。";
+  box.appendChild(footer);
 }
 function closeModal() {
   modal.hidden = true;
@@ -1153,9 +1231,18 @@ function renderHistory() {
 
     const body = document.createElement("div");
     body.className = "log-body";
-    body.innerHTML = log.exercises
-      .map(ex => '<div><span class="n">' + ex.name + '</span> ' + formatSets(ex.sets) + '</div>')
-      .join("");
+    for (const ex of log.exercises) {
+      const line = document.createElement("div");
+      const name = document.createElement("button");
+      name.className = "link";
+      name.style.cssText = "padding:0;font-size:13px";
+      name.textContent = ex.name;
+      name.title = "この種目の記録を見る";
+      name.onclick = () => openArtModal(findExerciseDef(ex.name));
+      line.appendChild(name);
+      line.appendChild(document.createTextNode(" " + formatSets(ex.sets)));
+      body.appendChild(line);
+    }
     card.appendChild(body);
 
     if (log.memo) {
