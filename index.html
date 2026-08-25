@@ -267,6 +267,9 @@
         </label>
       </div>
       <p class="muted" id="persistNote" style="margin:10px 0 0"></p>
+      <p class="muted" style="margin:6px 0 0;font-size:11px">
+        アプリの版 <span id="appVersion"></span>
+      </p>
     </div>
   </section>
 
@@ -1271,6 +1274,10 @@ function renderHistory() {
 }
 
 // ===== 起動 ===========================================================
+// 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
+const APP_VERSION = "2026-08-25.1";
+document.getElementById("appVersion").textContent = APP_VERSION;
+
 renderHome();
 requestPersistentStorage();
 

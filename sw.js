@@ -22,8 +22,14 @@ self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
   // Firebase など外部ドメインへの通信には触らない（キャッシュすると認証が壊れる）
   if (new URL(event.request.url).origin !== location.origin) return;
+  // GitHub Pages は max-age=600 を返すので、そのままだと10分間は古い版が使われる。
+  // 中身が変わりうるファイル（HTML/JS/JSON）はHTTPキャッシュを迂回して必ず取りに行く。
+  const path = new URL(event.request.url).pathname;
+  const isCode = event.request.mode === "navigate" || /\.(html|js|json)$/.test(path) || path.endsWith("/");
+  const request = isCode ? new Request(event.request, { cache: "reload" }) : event.request;
+
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(event.request, copy));

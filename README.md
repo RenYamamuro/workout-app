@@ -42,6 +42,13 @@ https://renyamamuro.github.io/workout-app/
 
 OS・ブラウザを問わず開ける。更新は `git push` するだけで反映される（反映まで数十秒）。
 
+**更新を端末に届ける方法**: iPhoneならアプリスイッチャーで上スワイプして完全に終了させ、
+オンライン状態で開き直す。ホーム画面に戻すだけでは終了していないので更新されない。
+GitHub Pages は `Cache-Control: max-age=600` を返すため、`sw.js` 側で
+HTML/JS/JSON のリクエストに `cache: "reload"` を付けてHTTPキャッシュを迂回している。
+届いたかどうかは「データ」カード下部の **アプリの版**（`APP_VERSION`）で確認できる。
+デプロイのたびに `index.html` の `APP_VERSION` を上げること。
+
 ### ホーム画面 / デスクトップに追加
 
 - **iPhone (Safari)** — 共有ボタン → 「ホーム画面に追加」
