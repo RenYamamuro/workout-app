@@ -139,6 +139,8 @@
 
   .ex-head { display: flex; align-items: baseline; gap: 8px; }
   .ex-head b { font-size: 15px; }
+  .ex-head .done { color: var(--good); font-size: 14px; flex: none; }
+  .card.finished { border-color: var(--good); }
   .ex-head .target { font-size: 12px; color: var(--muted); margin-left: auto; white-space: nowrap; }
   .prev { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .prev.none { font-style: italic; }
@@ -220,10 +222,10 @@
   }
   .modal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .modal-head b { font-size: 16px; flex: 1; }
-  .illust.big {
-    width: 100%; height: auto; aspect-ratio: 1 / 1; max-width: 260px;
-    margin: 0 auto 12px; cursor: default;
-  }
+  .modal-top { display: flex; gap: 12px; align-items: flex-start; }
+  .modal-top .muted { margin: 0; flex: 1; }
+  .illust.big { width: 104px; height: 104px; flex: none; margin: 0; }
+  .illust.big.zoom { width: 100%; height: auto; aspect-ratio: 1 / 1; }
   .hist { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
   .hist h4 { font-size: 13px; margin: 0 0 4px; color: var(--muted); font-weight: 600; }
   .hist-row {
@@ -249,6 +251,7 @@
   <button id="backBtn" class="link" hidden>← 戻る</button>
   <h1 id="title">筋トレ記録</h1>
   <button id="historyBtn" class="link">履歴</button>
+  <button id="settingsBtn" class="link" title="設定">⚙</button>
 </header>
 
 <main>
@@ -260,6 +263,26 @@
       <div class="muted" id="lastSummary"></div>
     </div>
 
+  </section>
+
+  <!-- 記録画面 -->
+  <section id="workoutScreen" hidden>
+    <div class="card">
+      <label class="muted" for="dateInput">実施日</label>
+      <input type="date" id="dateInput" style="margin-top:6px">
+    </div>
+    <div id="exerciseList"></div>
+    <div class="card">
+      <label class="muted" for="memoInput">メモ（体調・筋肉痛・気づいたことなど）</label>
+      <textarea id="memoInput" placeholder="例）脚に筋肉痛が残っていたので軽め" style="margin-top:6px"></textarea>
+    </div>
+    <div class="save-bar">
+      <button class="primary" id="saveBtn">この内容で保存</button>
+    </div>
+  </section>
+
+  <!-- 設定画面 -->
+  <section id="settingsScreen" hidden>
     <div class="card" id="cloudCard" hidden>
       <div class="row" style="margin-bottom:6px">
         <b style="font-size:15px">クラウド同期</b>
@@ -308,22 +331,6 @@
     </div>
   </section>
 
-  <!-- 記録画面 -->
-  <section id="workoutScreen" hidden>
-    <div class="card">
-      <label class="muted" for="dateInput">実施日</label>
-      <input type="date" id="dateInput" style="margin-top:6px">
-    </div>
-    <div id="exerciseList"></div>
-    <div class="card">
-      <label class="muted" for="memoInput">メモ（体調・筋肉痛・気づいたことなど）</label>
-      <textarea id="memoInput" placeholder="例）脚に筋肉痛が残っていたので軽め" style="margin-top:6px"></textarea>
-    </div>
-    <div class="save-bar">
-      <button class="primary" id="saveBtn">この内容で保存</button>
-    </div>
-  </section>
-
   <!-- 履歴画面 -->
   <section id="historyScreen" hidden>
     <div id="logList"></div>
@@ -337,16 +344,18 @@
       <b id="modalTitle"></b>
       <button class="link" id="modalClose">閉じる</button>
     </div>
-    <div class="illust big" id="modalIllust"></div>
-    <p class="muted" id="modalNote" style="margin-top:0"></p>
-    <div class="row">
+    <div class="modal-top">
+      <div class="illust big" id="modalIllust"></div>
+      <p class="muted" id="modalNote"></p>
+    </div>
+    <div class="hist" id="modalHistory"></div>
+    <div class="row" style="margin-top:14px">
       <label class="filebtn">
         📷 実物の写真を登録
         <input type="file" accept="image/*" id="photoInput" hidden>
       </label>
       <button class="link" id="photoDelete" hidden>写真を削除</button>
     </div>
-    <div class="hist" id="modalHistory"></div>
   </div>
 </div>
 
@@ -718,23 +727,30 @@ function totalVolume(exercises) {
 
 // ===== 画面の切り替え =================================================
 const screens = {
-  home:    document.getElementById("homeScreen"),
-  workout: document.getElementById("workoutScreen"),
-  history: document.getElementById("historyScreen")
+  home:     document.getElementById("homeScreen"),
+  workout:  document.getElementById("workoutScreen"),
+  history:  document.getElementById("historyScreen"),
+  settings: document.getElementById("settingsScreen")
 };
 const titleEl    = document.getElementById("title");
 const backBtn    = document.getElementById("backBtn");
 const historyBtn = document.getElementById("historyBtn");
+const settingsBtn = document.getElementById("settingsBtn");
 
 function showScreen(name, title) {
   for (const key in screens) screens[key].hidden = (key !== name);
   titleEl.textContent = title;
   backBtn.hidden = (name === "home");
   historyBtn.hidden = (name !== "home");
+  settingsBtn.hidden = (name !== "home");
   window.scrollTo(0, 0);
 }
 backBtn.onclick = () => renderHome();
 historyBtn.onclick = () => renderHistory();
+settingsBtn.onclick = () => {
+  updateDataCard();
+  showScreen("settings", "設定");
+};
 
 // ===== ホーム画面 =====================================================
 function nextMenuId() {
@@ -771,7 +787,6 @@ function renderHome() {
       "前回：" + formatDate(last.date) + " メニュー" + last.menu +
       "（総挙上量 " + totalVolume(last.exercises).toLocaleString() + "kg） / 記録 " + logs.length + "件";
   }
-  updateDataCard();
   showScreen("home", "筋トレ記録");
 }
 
@@ -947,6 +962,16 @@ function renderWorkout(menuId) {
 
   drawExercises();
   showScreen("workout", "メニュー" + menuId);
+  updateProgress();
+}
+
+// ヘッダーのタイトルに進捗を出す（メニューC 3/7 のように）
+function updateProgress() {
+  if (!draft) return;
+  const done = draft.exercises.filter(
+    ex => ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0)
+  ).length;
+  titleEl.textContent = "メニュー" + draft.menu + "　" + done + "/" + draft.exercises.length;
 }
 
 function drawExercises() {
@@ -974,6 +999,7 @@ function drawExercises() {
     const last = findLastRecord(def.name);
     info.innerHTML =
       '<div class="ex-head"><b>' + def.name + '</b>' +
+      '<span class="done" hidden>✓</span>' +
       '<span class="target">' + def.target + '</span></div>' +
       '<div class="prev' + (last ? '' : ' none') + '">' +
       (last ? "前回 " + formatDate(last.date) + "　" + formatSets(last.sets)
@@ -994,6 +1020,13 @@ function drawExercises() {
     hint.className = "hint";
     hint.hidden = true;
     card.appendChild(hint);
+
+    // この種目に1セットでも入力があれば「済」にする
+    function updateDone() {
+      const done = draft.exercises[exIndex].sets.some(s => s.reps !== "" && Number(s.reps) > 0);
+      card.classList.toggle("finished", done);
+      card.querySelector(".done").hidden = !done;
+    }
 
     // 入力中の内容から推定1RMを出し、自己ベストと比べる
     function updateEstimate() {
@@ -1092,7 +1125,10 @@ function drawExercises() {
         const r = document.createElement("input");
         r.type = "number"; r.inputMode = "numeric"; r.min = "0";
         r.placeholder = "回数"; r.value = set.reps;
-        r.oninput = () => { set.reps = r.value; updateHint(); updateEstimate(); };
+        r.oninput = () => {
+          set.reps = r.value;
+          updateHint(); updateEstimate(); updateDone(); updateProgress();
+        };
         rField.appendChild(r);
         const rUnit = document.createElement("span");
         rUnit.className = "unit"; rUnit.textContent = "回";
@@ -1102,8 +1138,12 @@ function drawExercises() {
         const del = document.createElement("button");
         del.className = "link"; del.textContent = "✕"; del.title = "このセットを削除";
         del.onclick = () => {
+          // 入力済みのセットは打ち直しになるので、消す前に確認する
+          if (set.reps !== "" &&
+              !confirm((setIndex + 1) + "セット目（" +
+                       (set.weight || 0) + "kg × " + set.reps + "回）を削除しますか？")) return;
           draft.exercises[exIndex].sets.splice(setIndex, 1);
-          drawSets(); updateHint(); updateEstimate();
+          drawSets(); updateHint(); updateEstimate(); updateProgress();
         };
         row.appendChild(del);
 
@@ -1135,6 +1175,7 @@ function drawExercises() {
 
     drawSets();
     updateEstimate();
+    updateDone();
     container.appendChild(card);
   });
 }
@@ -1185,6 +1226,9 @@ function openArtModal(def) {
   modal.hidden = false;
 }
 function drawModal() {
+  // 図解はタップで大きくできる（初回は小さく出して履歴を優先する）
+  modalIllust.onclick = () => modalIllust.classList.toggle("zoom");
+  modalIllust.title = "タップで拡大";
   const photos = loadPhotos();
   const hasPhoto = !!photos[modalExercise.name];
   modalTitle.textContent = modalExercise.name;
@@ -1348,7 +1392,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-25.2";
+const APP_VERSION = "2026-08-25.3";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 applyTheme(loadTheme());
