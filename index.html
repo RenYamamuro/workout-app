@@ -135,8 +135,18 @@
     border: 1px solid var(--line); border-radius: 8px;
     background: var(--bg); color: var(--text);
   }
-  .set .unit { font-size: 12px; color: var(--muted); width: 26px; }
-  .set .f { display: flex; align-items: center; gap: 4px; flex: 1; }
+  .set .unit { font-size: 11px; color: var(--muted); flex: none; }
+  .set .f { display: flex; align-items: center; gap: 3px; min-width: 0; }
+  .set .w { flex: 1.35; }
+  .set .r { flex: 1; }
+  .set .step-btn {
+    flex: none; width: 34px; padding: 9px 0;
+    font-size: 17px; line-height: 1; font-weight: 600;
+  }
+  .step-pick {
+    font-size: 12px; color: var(--accent);
+    border: none; background: none; padding: 2px 4px; margin-left: auto;
+  }
 
   input[type="date"], textarea {
     font: inherit; width: 100%;
@@ -478,6 +488,25 @@ function markDeleted(id) {
   localStorage.setItem(DELETED_KEY, JSON.stringify(list));
 }
 
+// 重量の刻み幅（種目ごと）。マシンによってプレートの刻みが違うので個別に覚える
+const STEP_KEY = "workout-steps-v1";
+const STEP_CHOICES = [1, 2.5, 5, 10, 20];
+function loadSteps() {
+  try { return JSON.parse(localStorage.getItem(STEP_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function stepFor(name) {
+  const v = loadSteps()[name];
+  return STEP_CHOICES.includes(v) ? v : 2.5;
+}
+function cycleStep(name) {
+  const steps = loadSteps();
+  const i = STEP_CHOICES.indexOf(stepFor(name));
+  steps[name] = STEP_CHOICES[(i + 1) % STEP_CHOICES.length];
+  localStorage.setItem(STEP_KEY, JSON.stringify(steps));
+  return steps[name];
+}
+
 const DELETED_PHOTO_KEY = "workout-deleted-photos-v1";
 function loadDeletedPhotos() {
   try { return JSON.parse(localStorage.getItem(DELETED_PHOTO_KEY)) || []; }
@@ -791,6 +820,24 @@ function drawExercises() {
       if (cleared) hint.textContent = "全セット完遂 ✓ 次回は 2.5〜5kg 上げてOK";
     }
 
+    // − / ＋ を押したときの重量の増減
+    function adjustWeight(setIndex, direction) {
+      const sets = draft.exercises[exIndex].sets;
+      const before = Number(sets[setIndex].weight || 0);
+      const step = stepFor(def.name);
+      const after = Math.max(0, Math.round((before + direction * step) * 100) / 100);
+
+      // まだ回数を入れていない後続セットが同じ重量なら、まとめて合わせる
+      for (let j = setIndex + 1; j < sets.length; j++) {
+        if (sets[j].reps === "" && Number(sets[j].weight || 0) === before) {
+          sets[j].weight = String(after);
+        }
+      }
+      sets[setIndex].weight = String(after);
+      drawSets();
+      updateHint();
+    }
+
     function drawSets() {
       setsBox.innerHTML = "";
       draft.exercises[exIndex].sets.forEach((set, setIndex) => {
@@ -802,8 +849,13 @@ function drawExercises() {
         no.textContent = (setIndex + 1) + ".";
         row.appendChild(no);
 
+        const minus = document.createElement("button");
+        minus.className = "step-btn"; minus.textContent = "−";
+        minus.onclick = () => adjustWeight(setIndex, -1);
+        row.appendChild(minus);
+
         const wField = document.createElement("span");
-        wField.className = "f";
+        wField.className = "f w";
         const w = document.createElement("input");
         w.type = "number"; w.inputMode = "decimal"; w.step = "0.5"; w.min = "0";
         w.placeholder = "重量"; w.value = set.weight;
@@ -814,8 +866,13 @@ function drawExercises() {
         wField.appendChild(wUnit);
         row.appendChild(wField);
 
+        const plus = document.createElement("button");
+        plus.className = "step-btn"; plus.textContent = "＋";
+        plus.onclick = () => adjustWeight(setIndex, 1);
+        row.appendChild(plus);
+
         const rField = document.createElement("span");
-        rField.className = "f";
+        rField.className = "f r";
         const r = document.createElement("input");
         r.type = "number"; r.inputMode = "numeric"; r.min = "0";
         r.placeholder = "回数"; r.value = set.reps;
@@ -837,6 +894,9 @@ function drawExercises() {
         setsBox.appendChild(row);
       });
 
+      const footer = document.createElement("div");
+      footer.className = "row";
+
       const add = document.createElement("button");
       add.className = "link"; add.textContent = "＋ セットを追加";
       add.onclick = () => {
@@ -845,7 +905,16 @@ function drawExercises() {
         sets.push({ weight: lastSet ? lastSet.weight : "", reps: "" });
         drawSets(); updateHint();
       };
-      setsBox.appendChild(add);
+      footer.appendChild(add);
+
+      const pick = document.createElement("button");
+      pick.className = "step-pick";
+      pick.textContent = "刻み " + stepFor(def.name) + "kg";
+      pick.title = "タップで切り替え";
+      pick.onclick = () => { cycleStep(def.name); drawSets(); };
+      footer.appendChild(pick);
+
+      setsBox.appendChild(footer);
     }
 
     drawSets();
