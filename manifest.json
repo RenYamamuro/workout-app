@@ -1,16 +1,36 @@
 {
   "name": "筋トレ記録",
   "short_name": "筋トレ記録",
+  "description": "A/B/C 3分割メニューのトレーニング記録。前回の重量・推定1RM・種目ごとの履歴。",
   "lang": "ja",
+  "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#111418",
-  "theme_color": "#111418",
+  "background_color": "#fbfbfc",
+  "theme_color": "#fbfbfc",
+  "categories": [
+    "health",
+    "fitness",
+    "productivity"
+  ],
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192-v2.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512-v2.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable-512-v2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

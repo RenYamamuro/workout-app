@@ -2,7 +2,8 @@
 // ネットワーク優先（online なら常に最新を取りに行く）＋ 失敗したらキャッシュを返す。
 // この順番にしておくと、アプリを更新したときに古い画面が居座らない。
 const CACHE = "workout-cache-v1";
-const ASSETS = ["./", "./index.html", "./firebase-sync.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const ASSETS = ["./", "./index.html", "./firebase-sync.js", "./manifest.json",
+                "./icons/icon-192-v2.png", "./icons/icon-512-v2.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(

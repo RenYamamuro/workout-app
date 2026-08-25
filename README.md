@@ -106,7 +106,10 @@ manifest は読み込まれない（機能そのものには影響しない）�
 - `sw.js` — オフライン用の Service Worker（ネットワーク優先 + キャッシュ）
 - `firebase-sync.js` — クラウド同期（Firestore + Googleログイン）
 - `firestore.rules` — Firestore のセキュリティルール（Firebaseコンソールに貼る内容）
-- `icon-192.png` / `icon-512.png` / `apple-touch-icon.png` — アプリアイコン
+- `icons/` — アプリアイコン。サブスク側と同じ意匠（`#6969E0`→`#504AC9` の縦グラデーション、
+  角丸半径 23%、白い字形を中央に大きく）。iOS はホーム画面のアイコンを強くキャッシュするので、
+  差し替えるときは **ファイル名ごと変える**（`-v2` → `-v3`）。
+  `icon-maskable-512-v2.png` は OS 側が円などで切り抜くため、角丸なしで字形を小さめにしている
   - `MENUS` … 種目マスタ。種目の追加・変更はここを編集する
   - `STORAGE_KEY` … localStorage のキー
   - 画面は `renderHome()` / `renderWorkout()` / `renderHistory()` の3つ
