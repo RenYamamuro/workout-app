@@ -122,6 +122,17 @@
   .ex-head .target { font-size: 12px; color: var(--muted); margin-left: auto; white-space: nowrap; }
   .prev { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .prev.none { font-style: italic; }
+  .est {
+    font-size: 12px; color: var(--muted);
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line);
+  }
+  .est b { color: var(--text); font-size: 13px; }
+  .est .pb { color: var(--good); }
+  .bw-input {
+    font: inherit; width: 90px; text-align: right;
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--text);
+  }
   .hint {
     font-size: 12px; color: var(--good); background: var(--good-weak);
     border-radius: 8px; padding: 6px 8px; margin-top: 8px;
@@ -228,6 +239,13 @@
         <b style="font-size:15px">データ</b>
         <span class="muted" id="storageInfo" style="margin-left:auto"></span>
       </div>
+      <div class="row" style="margin-bottom:10px">
+        <label class="muted" for="bodyweightInput">体重</label>
+        <input type="number" inputmode="decimal" step="0.1" min="1"
+               id="bodyweightInput" class="bw-input">
+        <span class="muted">kg</span>
+        <span class="muted" style="margin-left:auto">1RMの体重比に使います</span>
+      </div>
       <p class="muted" id="dataSummary" style="margin:0 0 10px"></p>
       <div class="row">
         <button id="exportBtn">📥 書き出し</button>
@@ -288,7 +306,7 @@ const MENUS = {
   A: {
     title: "プッシュ（胸・肩・三頭）+ 脚前面",
     exercises: [
-      { name: "スミスマシンベンチプレス",       target: "3×8〜10",  note: "フリーウェイトと重量が違うので「スミス」と分けて記録する" },
+      { name: "スミスマシンベンチプレス",       target: "3×8〜10",  ratio: true, note: "フリーウェイトと重量が違うので「スミス」と分けて記録する" },
       { name: "アイソラテラルショルダープレス", target: "3×10",     note: "左右独立。左右差の修正に有利" },
       { name: "ペクトラルフライ",               target: "3×12〜15", note: "胸の単関節種目。初回は軽めで軌道確認" },
       { name: "レッグエクステンション",         target: "3×12〜15", note: "大腿四頭筋" },
@@ -310,8 +328,8 @@ const MENUS = {
   C: {
     title: "脚メイン + 補完",
     exercises: [
-      { name: "V-スクワット",                   target: "3×10〜12", note: "脚の主力種目" },
-      { name: "シーテッドレッグプレス",         target: "3×12〜15", note: "重量の刻みを確認する" },
+      { name: "V-スクワット",                   target: "3×10〜12", ratio: true, note: "脚の主力種目" },
+      { name: "シーテッドレッグプレス",         target: "3×12〜15", ratio: true, note: "重量の刻みを確認する" },
       { name: "ヒップ＆グルート",               target: "3×12〜15", note: "臀部" },
       { name: "ヒップアブダクション",           target: "2×15",     note: "中臀筋・股関節の安定性" },
       { name: "アイソラテラルハイロー",         target: "3×10〜12", note: "背中の上部" },
@@ -551,6 +569,48 @@ function artHTML(name, photos) {
   return SVG_OPEN + (ART[name] || ART_FALLBACK) + '</svg>';
 }
 
+// ===== 1RM推定 ========================================================
+// Epley式: 1RM = 重量 × (1 + レップ数 / 30)
+// 12回を超えると誤差が大きくなるので、そのときは参考値として扱う
+const BODYWEIGHT_KEY = "workout-bodyweight-v1";
+function loadBodyweight() {
+  const v = Number(localStorage.getItem(BODYWEIGHT_KEY));
+  return v > 0 ? v : 58;
+}
+function saveBodyweight(kg) {
+  localStorage.setItem(BODYWEIGHT_KEY, String(kg));
+}
+
+function estimate1RM(weight, reps) {
+  const w = Number(weight), r = Number(reps);
+  if (!(w > 0) || !(r > 0)) return null;
+  if (r === 1) return w;
+  return Math.round(w * (1 + r / 30) * 10) / 10;
+}
+// セット配列の中で最も高い推定1RMを返す
+function bestOfSets(sets) {
+  let best = null;
+  for (const set of sets) {
+    const e = estimate1RM(set.weight, set.reps);
+    if (e !== null && (best === null || e > best.value)) {
+      best = { value: e, weight: Number(set.weight), reps: Number(set.reps) };
+    }
+  }
+  return best;
+}
+// 過去の全記録から、その種目の自己ベスト（推定1RM）を探す
+function personalBest(exerciseName) {
+  let best = null;
+  for (const log of loadLogs()) {
+    for (const ex of log.exercises) {
+      if (ex.name !== exerciseName) continue;
+      const b = bestOfSets(ex.sets);
+      if (b && (best === null || b.value > best.value)) best = { ...b, date: log.date };
+    }
+  }
+  return best;
+}
+
 // ===== 小さなユーティリティ ===========================================
 // "3×8〜10" → { sets: 3, repMax: 10 }
 function parseTarget(target) {
@@ -646,6 +706,14 @@ function renderHome() {
 const dataSummary = document.getElementById("dataSummary");
 const storageInfo = document.getElementById("storageInfo");
 const persistNote = document.getElementById("persistNote");
+
+const bodyweightInput = document.getElementById("bodyweightInput");
+bodyweightInput.value = loadBodyweight();
+bodyweightInput.onchange = () => {
+  const v = Number(bodyweightInput.value);
+  if (v > 0) saveBodyweight(v);
+  bodyweightInput.value = loadBodyweight();
+};
 
 async function updateDataCard() {
   const logs = loadLogs();
@@ -806,10 +874,46 @@ function drawExercises() {
     const setsBox = document.createElement("div");
     card.appendChild(setsBox);
 
+    const est = document.createElement("div");
+    est.className = "est";
+    est.hidden = true;
+    card.appendChild(est);
+
     const hint = document.createElement("div");
     hint.className = "hint";
     hint.hidden = true;
     card.appendChild(hint);
+
+    // 入力中の内容から推定1RMを出し、自己ベストと比べる
+    function updateEstimate() {
+      const best = bestOfSets(draft.exercises[exIndex].sets);
+      const pb = personalBest(def.name);
+
+      if (!best) {
+        // まだ入力が無いときは、自己ベストだけ出しておく
+        if (pb) {
+          est.hidden = false;
+          est.innerHTML = "自己ベスト <b>" + pb.value + "kg</b>" +
+            "（" + formatDate(pb.date) + " " + pb.weight + "kg×" + pb.reps + "）";
+        } else {
+          est.hidden = true;
+        }
+        return;
+      }
+
+      est.hidden = false;
+      let html = "推定1RM <b>" + best.value + "kg</b>";
+      if (def.ratio) {
+        html += "（体重比 " + (best.value / loadBodyweight()).toFixed(2) + "倍）";
+      }
+      if (pb) {
+        html += best.value > pb.value
+          ? ' <span class="pb">自己ベスト更新（前 ' + pb.value + 'kg）</span>'
+          : "　自己ベスト " + pb.value + "kg";
+      }
+      if (best.reps > 12) html += "<br>※13回以上からの推定は誤差が大きめです";
+      est.innerHTML = html;
+    }
 
     // 目標レップを全セット達成できたら増量をすすめる
     function updateHint() {
@@ -836,6 +940,7 @@ function drawExercises() {
       sets[setIndex].weight = String(after);
       drawSets();
       updateHint();
+      updateEstimate();
     }
 
     function drawSets() {
@@ -859,7 +964,7 @@ function drawExercises() {
         const w = document.createElement("input");
         w.type = "number"; w.inputMode = "decimal"; w.step = "0.5"; w.min = "0";
         w.placeholder = "重量"; w.value = set.weight;
-        w.oninput = () => { set.weight = w.value; };
+        w.oninput = () => { set.weight = w.value; updateEstimate(); };
         wField.appendChild(w);
         const wUnit = document.createElement("span");
         wUnit.className = "unit"; wUnit.textContent = "kg";
@@ -876,7 +981,7 @@ function drawExercises() {
         const r = document.createElement("input");
         r.type = "number"; r.inputMode = "numeric"; r.min = "0";
         r.placeholder = "回数"; r.value = set.reps;
-        r.oninput = () => { set.reps = r.value; updateHint(); };
+        r.oninput = () => { set.reps = r.value; updateHint(); updateEstimate(); };
         rField.appendChild(r);
         const rUnit = document.createElement("span");
         rUnit.className = "unit"; rUnit.textContent = "回";
@@ -887,7 +992,7 @@ function drawExercises() {
         del.className = "link"; del.textContent = "✕"; del.title = "このセットを削除";
         del.onclick = () => {
           draft.exercises[exIndex].sets.splice(setIndex, 1);
-          drawSets(); updateHint();
+          drawSets(); updateHint(); updateEstimate();
         };
         row.appendChild(del);
 
@@ -918,6 +1023,7 @@ function drawExercises() {
     }
 
     drawSets();
+    updateEstimate();
     container.appendChild(card);
   });
 }
