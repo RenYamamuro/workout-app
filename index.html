@@ -24,8 +24,8 @@
 <style>
   :root {
     /* 画面遷移の速さ。ここだけ変えれば全体の印象が変わる */
-    --anim: .45s;
-    --anim-fast: .34s;
+    --anim: .6s;
+    --anim-fast: .45s;
     --ease: cubic-bezier(.32,.72,0,1);
 
     --bg: #f5f6f8;
@@ -1464,7 +1464,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-25.5";
+const APP_VERSION = "2026-08-25.6";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 applyTheme(loadTheme());
