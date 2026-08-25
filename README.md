@@ -75,6 +75,21 @@ git add -A && git commit -m "変更内容" && git push
 ※ `index.html` を直接ダブルクリックしても動くが、その場合 Service Worker と
 manifest は読み込まれない（機能そのものには影響しない）。
 
+## デザイン
+
+`~/claude/subscriptions`（サブスク・固定費マネージャー）と同じデザイン言語を使っている。
+
+- **余白**は4の倍数のみ（`--s1`..`--s8`）。中間値を作らない
+- **文字**は6段階のみ（`--t-xs` 11px ..`--t-2xl` 48px）。1px刻みは使わない
+- **角丸**は3種類（`--r-sm` / `--r-md` / `--r-lg`）
+- **面**は「地(`--bg`)」と「板(`--panel`)」の2枚だけ。影に頼らず1pxの境界で分ける
+- **文字色**は3段階（`--ink` / `--ink-2` / `--ink-3`）
+- **アイコン**は16pxの線画（`viewBox="0 0 16 16"`, `stroke-width="1.3"`, `currentColor`）。
+  絵文字は使わない（OSごとに描画が変わり制御できないため）
+- 数字には `font-variant-numeric: tabular-nums` を当てて桁を揃える
+
+種目の図解だけは独自で、`--ink-3`＝マシンの骨格、`--ink`＝人、`--accent`＝動く部分。
+
 ## ファイル構成
 
 - `index.html` — アプリ本体（HTML / CSS / JS すべて）
