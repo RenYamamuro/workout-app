@@ -23,6 +23,11 @@
 </script>
 <style>
   :root {
+    /* 画面遷移の速さ。ここだけ変えれば全体の印象が変わる */
+    --anim: .45s;
+    --anim-fast: .34s;
+    --ease: cubic-bezier(.32,.72,0,1);
+
     --bg: #f5f6f8;
     --card: #ffffff;
     --text: #1a1d21;
@@ -266,14 +271,14 @@
   @keyframes backdrop-in  { from { opacity: 0; } to { opacity: 1; } }
   @keyframes backdrop-out { from { opacity: 1; } to { opacity: 0; } }
 
-  .push-in { animation: push-in .28s cubic-bezier(.32,.72,0,1); }
-  .pop-in  { animation: pop-in  .28s cubic-bezier(.32,.72,0,1); }
-  #title.changed { animation: title-in .28s ease-out; }
+  .push-in { animation: push-in var(--anim) var(--ease); }
+  .pop-in  { animation: pop-in  var(--anim) var(--ease); }
+  #title.changed { animation: title-in var(--anim) ease-out; }
 
-  .modal { animation: backdrop-in .2s ease-out; }
-  .modal .modal-card { animation: sheet-in .28s cubic-bezier(.32,.72,0,1); }
-  .modal.closing { animation: backdrop-out .18s ease-in forwards; }
-  .modal.closing .modal-card { animation: sheet-out .18s ease-in forwards; }
+  .modal { animation: backdrop-in var(--anim-fast) ease-out; }
+  .modal .modal-card { animation: sheet-in var(--anim) var(--ease); }
+  .modal.closing { animation: backdrop-out var(--anim-fast) ease-in forwards; }
+  .modal.closing .modal-card { animation: sheet-out var(--anim-fast) ease-in forwards; }
 
   /* 動きを減らす設定にしている場合は、アニメーションを止める */
   @media (prefers-reduced-motion: reduce) {
@@ -1350,7 +1355,7 @@ function closeModal() {
     modalExercise = null;
   };
   // アニメーションを切っている環境では animationend が来ないので保険をかける
-  const timer = setTimeout(finish, 260);
+  const timer = setTimeout(finish, 700);
   modal.addEventListener("animationend", () => { clearTimeout(timer); finish(); }, { once: true });
 }
 document.getElementById("modalClose").onclick = closeModal;
@@ -1459,7 +1464,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-25.4";
+const APP_VERSION = "2026-08-25.5";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 applyTheme(loadTheme());
