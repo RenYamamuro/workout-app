@@ -63,6 +63,8 @@ manifest は読み込まれない（機能そのものには影響しない）�
 - `index.html` — アプリ本体（HTML / CSS / JS すべて）
 - `manifest.json` — ホーム画面に追加したときの名前・アイコン・表示設定
 - `sw.js` — オフライン用の Service Worker（ネットワーク優先 + キャッシュ）
+- `firebase-sync.js` — クラウド同期（Firestore + Googleログイン）
+- `firestore.rules` — Firestore のセキュリティルール（Firebaseコンソールに貼る内容）
 - `icon-192.png` / `icon-512.png` / `apple-touch-icon.png` — アプリアイコン
   - `MENUS` … 種目マスタ。種目の追加・変更はここを編集する
   - `STORAGE_KEY` … localStorage のキー
@@ -104,7 +106,18 @@ Chromeはインストール済み（ホーム画面に追加済み）のサイ�
 - **読み込み** — 書き出したファイルを選ぶと**マージ**される（同じidの記録は重複しない、
   今ある記録は消えない）
 
-自動同期は未実装。次はFirebase（Firestore + Googleログイン）で入れる予定。
+### クラウド同期
+
+Googleでログインすると、Firestore を経由して端末・ブラウザをまたいで同期される。
+
+- 保存先: `users/{uid}/logs/{記録id}` と `users/{uid}/photos/{種目名}`
+- 記録を保存・削除するたびに自動で同期。手動の「今すぐ同期」もある
+- 方式は**マージ**（クラウドと端末で足りないものを互いに補う）。
+  削除は `workout-deleted-v1` に id を残して、同期で復活しないようにしている
+- セキュリティルールは `firestore.rules`。**ログインした本人のデータだけ**読み書きできる
+- SDKの読み込みに失敗しても（オフラインなど）、アプリ本体はローカル保存だけで動く
+
+`firebase-sync.js` の `firebaseConfig` は公開情報。安全性はルールとログインで担保している。
 
 ## v2以降の候補
 

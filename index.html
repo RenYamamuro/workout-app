@@ -200,6 +200,19 @@
       <div class="muted" id="lastSummary"></div>
     </div>
 
+    <div class="card" id="cloudCard" hidden>
+      <div class="row" style="margin-bottom:6px">
+        <b style="font-size:15px">クラウド同期</b>
+        <span class="muted" id="cloudStatus" style="margin-left:auto"></span>
+      </div>
+      <p class="muted" id="cloudNote" style="margin:0 0 10px"></p>
+      <div class="row">
+        <button id="cloudSignIn">Googleでログイン</button>
+        <button id="cloudSyncNow" hidden>今すぐ同期</button>
+        <button class="link" id="cloudSignOut" hidden>ログアウト</button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="row" style="margin-bottom:6px">
         <b style="font-size:15px">データ</b>
@@ -451,7 +464,31 @@ function loadLogs() {
 }
 function saveLogs(logs) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+  if (window.cloudSync) window.cloudSync();   // ログイン中ならクラウドにも反映
 }
+// 端末で削除した記録のid。同期のときにクラウドからも消すために覚えておく
+const DELETED_KEY = "workout-deleted-v1";
+function loadDeleted() {
+  try { return JSON.parse(localStorage.getItem(DELETED_KEY)) || []; }
+  catch (e) { return []; }
+}
+function markDeleted(id) {
+  const list = loadDeleted();
+  if (!list.includes(String(id))) list.push(String(id));
+  localStorage.setItem(DELETED_KEY, JSON.stringify(list));
+}
+
+const DELETED_PHOTO_KEY = "workout-deleted-photos-v1";
+function loadDeletedPhotos() {
+  try { return JSON.parse(localStorage.getItem(DELETED_PHOTO_KEY)) || []; }
+  catch (e) { return []; }
+}
+function markPhotoDeleted(name) {
+  const list = loadDeletedPhotos();
+  if (!list.includes(name)) list.push(name);
+  localStorage.setItem(DELETED_PHOTO_KEY, JSON.stringify(list));
+}
+
 function loadPhotos() {
   try { return JSON.parse(localStorage.getItem(PHOTO_KEY)) || {}; }
   catch (e) { return {}; }
@@ -459,6 +496,7 @@ function loadPhotos() {
 function savePhotos(photos) {
   try {
     localStorage.setItem(PHOTO_KEY, JSON.stringify(photos));
+    if (window.cloudSync) window.cloudSync();
     return true;
   } catch (e) {
     alert("保存容量がいっぱいです。使っていない種目の写真を削除してください。");
@@ -895,6 +933,8 @@ photoInput.onchange = () => {
 
       const photos = loadPhotos();
       photos[modalExercise.name] = canvas.toDataURL("image/jpeg", 0.7);
+      localStorage.setItem(DELETED_PHOTO_KEY,
+        JSON.stringify(loadDeletedPhotos().filter(n => n !== modalExercise.name)));
       if (savePhotos(photos)) {
         drawModal();
         drawExercises();
@@ -908,6 +948,7 @@ photoInput.onchange = () => {
 
 photoDelete.onclick = () => {
   const photos = loadPhotos();
+  markPhotoDeleted(modalExercise.name);
   delete photos[modalExercise.name];
   savePhotos(photos);
   drawModal();
@@ -956,6 +997,7 @@ function renderHistory() {
     del.style.marginTop = "6px";
     del.onclick = () => {
       if (!confirm(formatDate(log.date) + " の記録を削除しますか？")) return;
+      markDeleted(log.id);
       saveLogs(loadLogs().filter(l => l.id !== log.id));
       renderHistory();
     };
@@ -976,5 +1018,8 @@ if ("serviceWorker" in navigator &&
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
 </script>
+
+<!-- クラウド同期（読み込めなくてもアプリ本体は動く） -->
+<script type="module" src="firebase-sync.js"></script>
 </body>
 </html>

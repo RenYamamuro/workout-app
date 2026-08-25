@@ -2,7 +2,7 @@
 // ネットワーク優先（online なら常に最新を取りに行く）＋ 失敗したらキャッシュを返す。
 // この順番にしておくと、アプリを更新したときに古い画面が居座らない。
 const CACHE = "workout-cache-v1";
-const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const ASSETS = ["./", "./index.html", "./firebase-sync.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -20,6 +20,8 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  // Firebase など外部ドメインへの通信には触らない（キャッシュすると認証が壊れる）
+  if (new URL(event.request.url).origin !== location.origin) return;
   event.respondWith(
     fetch(event.request)
       .then(res => {
