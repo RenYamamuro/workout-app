@@ -153,7 +153,7 @@ body {
 .tb-btn:hover { background: var(--hover); color: var(--ink); }
 .tb-btn:active { background: var(--press); }
 
-main { padding: var(--s4); max-width: 720px; margin: 0 auto; }
+main { padding: var(--s4); padding-bottom: var(--s8); max-width: 720px; margin: 0 auto; }
 
 /* ---------- ボタン ---------- */
 button {
@@ -187,6 +187,23 @@ button.danger:hover { background: var(--crit-wash); }
 .row > label { flex: none; white-space: nowrap; }
 .lead { color: var(--ink-2); font-size: var(--t-sm); margin: 0 0 var(--s3); }
 
+/* ---------- 概要タイル ---------- */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); margin-bottom: var(--s3); }
+.tile {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: var(--s3); box-shadow: var(--shadow);
+}
+.tile .label { font-size: var(--t-xs); color: var(--ink-3); font-weight: 500; }
+.tile .value {
+  font-size: var(--t-lg); font-weight: 600; margin-top: 2px;
+  letter-spacing: -0.025em; font-variant-numeric: tabular-nums;
+}
+.tile .value small { font-size: var(--t-sm); font-weight: 500; color: var(--ink-3); margin-left: 2px; }
+.tile .foot {
+  font-size: var(--t-xs); color: var(--ink-3); margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* ---------- メニュー選択 ---------- */
 .menu-btn {
   width: 100%; text-align: left; display: flex; align-items: center;
@@ -205,6 +222,17 @@ button.danger:hover { background: var(--crit-wash); }
 .next-tag {
   font-size: var(--t-xs); font-weight: 600; color: var(--accent);
   background: var(--accent-wash); padding: 3px var(--s2); border-radius: 999px;
+  flex: none;
+}
+.menu-btn .last { font-size: var(--t-xs); color: var(--ink-3); flex: none; }
+
+.date-row {
+  display: flex; align-items: center; gap: var(--s2);
+  padding: 0 var(--s1) var(--s3);
+}
+.date-row label { flex: none; white-space: nowrap; }
+.date-row input[type="date"] {
+  width: auto; padding: 5px var(--s2); font-size: var(--t-sm);
 }
 
 /* ---------- 種目カード ---------- */
@@ -265,14 +293,16 @@ button.danger:hover { background: var(--crit-wash); }
 .set input:focus {
   outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash);
 }
-.set .unit { font-size: var(--t-xs); color: var(--ink-3); flex: none; }
+.set .unit { font-size: var(--t-sm); color: var(--ink-3); flex: none; }
 .set .f { display: flex; align-items: center; gap: var(--s1); min-width: 0; }
 .set .w { flex: 1.3; }
 .set .r { flex: 1; }
 .set .step-btn {
-  flex: none; width: 36px; padding: 8px 0; color: var(--ink-2);
+  flex: none; width: 40px; padding: 10px 0; color: var(--ink-3);
+  border: 0; background: none; box-shadow: none;
   display: inline-flex; align-items: center; justify-content: center;
 }
+.set .step-btn:hover { background: var(--hover); color: var(--ink); }
 .set .del {
   flex: none; padding: var(--s2) 6px; color: var(--ink-3);
   border: 0; background: none; box-shadow: none;
@@ -329,7 +359,16 @@ textarea { resize: vertical; min-height: 64px; }
                  font-variant-numeric: tabular-nums; }
 .log-body { font-size: var(--t-sm); margin-top: var(--s2); line-height: 1.7;
             font-variant-numeric: tabular-nums; }
-.log-body button { font-size: var(--t-sm); }
+.log-body button {
+  font-size: var(--t-sm); font-weight: 500; color: var(--ink-2);
+  border: 0; background: none; box-shadow: none; padding: 0;
+}
+.log-body button:hover { color: var(--accent); background: none; }
+.log-del {
+  flex: none; border: 0; background: none; box-shadow: none;
+  color: var(--ink-3); padding: var(--s1); margin-left: var(--s2);
+}
+.log-del:hover { color: var(--crit); background: var(--crit-wash); }
 .empty { text-align: center; color: var(--ink-3); padding: var(--s7) 0; font-size: var(--t-sm); }
 
 .hist { margin-top: var(--s4); border-top: 1px solid var(--line); padding-top: var(--s3); }
@@ -411,19 +450,19 @@ textarea { resize: vertical; min-height: 64px; }
 <main>
   <!-- ホーム画面 -->
   <section id="homeScreen">
-    <p class="lead">A → B → C の順に、行く日に次のメニューを実施します。</p>
+    <div class="tiles" id="summaryTiles"></div>
     <div id="menuList"></div>
-    <div class="card">
-      <div class="muted" id="lastSummary"></div>
-    </div>
+    <p class="muted" style="margin:var(--s3) var(--s1) 0">
+      A → B → C の順に、行く日に次のメニューを実施します。
+    </p>
 
   </section>
 
   <!-- 記録画面 -->
   <section id="workoutScreen" hidden>
-    <div class="card">
+    <div class="date-row">
       <label class="muted" for="dateInput">実施日</label>
-      <input type="date" id="dateInput" style="margin-top:6px">
+      <input type="date" id="dateInput">
     </div>
     <div id="exerciseList"></div>
     <div class="card">
@@ -489,6 +528,9 @@ textarea { resize: vertical; min-height: 64px; }
 
   <!-- 履歴画面 -->
   <section id="historyScreen" hidden>
+    <p class="muted" id="historyHint" style="margin:0 var(--s1) var(--s3)">
+      種目名をタップすると、その種目だけの記録を見られます。
+    </p>
     <div id="logList"></div>
   </section>
 </main>
@@ -889,7 +931,8 @@ const ICONS = {
   plus:  '<path d="M8 3.2v9.6M3.2 8h9.6"/>',
   minus: '<path d="M3.2 8h9.6"/>',
   close: '<path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6"/>',
-  check: '<path d="M3.2 8.4 6.3 11.5 12.8 4.9"/>'
+  check: '<path d="M3.2 8.4 6.3 11.5 12.8 4.9"/>',
+  trash: '<path d="M2.8 4.4h10.4M6.4 4.4V2.8h3.2v1.6M4.4 4.4l.6 8.8h6l.6-8.8"/>'
 };
 function icon(name) { return '<svg ' + IC_ATTR + '>' + ICONS[name] + '</svg>'; }
 
@@ -948,34 +991,68 @@ function nextMenuId() {
   return MENU_ORDER[(i + 1) % MENU_ORDER.length];
 }
 
+// そのメニューを最後にやった日
+function lastDoneOf(menuId) {
+  const found = sortedLogs().find(l => l.menu === menuId);
+  return found ? found.date : null;
+}
+
 function renderHome() {
   const next = nextMenuId();
+  const logs = sortedLogs();
   const list = document.getElementById("menuList");
   list.innerHTML = "";
 
   for (const id of MENU_ORDER) {
     const menu = MENUS[id];
+    const last = lastDoneOf(id);
+    const right = id === next
+      ? '<span class="next-tag">次はこれ</span>'
+      : (last ? '<span class="last">前回 ' + formatDate(last) + '</span>' : "");
     const btn = document.createElement("button");
     btn.className = "menu-btn card";
     btn.innerHTML =
       '<span class="badge">' + id + '</span>' +
-      '<span class="t"><b>メニュー' + id + '</b><span>' + menu.title + '</span></span>' +
-      (id === next ? '<span class="next-tag">次はこれ</span>' : '');
+      '<span class="t"><b>メニュー' + id + '</b><span>' + menu.title + '</span></span>' + right;
     btn.onclick = () => renderWorkout(id);
     list.appendChild(btn);
   }
 
-  const logs = sortedLogs();
-  const summary = document.getElementById("lastSummary");
-  if (logs.length === 0) {
-    summary.textContent = "まだ記録がありません。メニューAから始めましょう。";
-  } else {
-    const last = logs[0];
-    summary.textContent =
-      "前回：" + formatDate(last.date) + " メニュー" + last.menu +
-      "（総挙上量 " + totalVolume(last.exercises).toLocaleString() + "kg） / 記録 " + logs.length + "件";
-  }
+  drawSummaryTiles(logs);
   showScreen("home", "筋トレ記録");
+}
+
+function drawSummaryTiles(logs) {
+  const box = document.getElementById("summaryTiles");
+  if (logs.length === 0) {
+    box.innerHTML =
+      '<div class="tile" style="grid-column:1/-1">' +
+      '<div class="label">はじめに</div>' +
+      '<div class="value" style="font-size:var(--t-md)">メニューAから始めましょう</div>' +
+      '<div class="foot">記録をつけると、前回の重量が自動で入ります</div></div>';
+    return;
+  }
+
+  // 直近30日の回数と、前回の内容
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+  const recent = logs.filter(l => new Date(l.date + "T00:00:00") >= since).length;
+  const last = logs[0];
+  const daysAgo = Math.round(
+    (new Date(todayString() + "T00:00:00") - new Date(last.date + "T00:00:00")) / 86400000
+  );
+
+  box.innerHTML =
+    '<div class="tile">' +
+      '<div class="label">直近30日</div>' +
+      '<div class="value">' + recent + '<small>回</small></div>' +
+      '<div class="foot">全' + logs.length + '回の記録</div>' +
+    '</div>' +
+    '<div class="tile">' +
+      '<div class="label">前回</div>' +
+      '<div class="value">' + (daysAgo === 0 ? "今日" : daysAgo + '<small>日前</small>') + '</div>' +
+      '<div class="foot">' + formatDate(last.date) + ' メニュー' + last.menu + '</div>' +
+    '</div>';
 }
 
 // ===== データの書き出し・読み込み =====================================
@@ -1536,6 +1613,7 @@ function renderHistory() {
   container.innerHTML = "";
   const logs = sortedLogs();
 
+  document.getElementById("historyHint").hidden = (logs.length === 0);
   if (logs.length === 0) {
     container.innerHTML = '<p class="empty">まだ記録がありません。</p>';
   }
@@ -1549,6 +1627,20 @@ function renderHistory() {
     head.innerHTML =
       '<b>' + formatDate(log.date) + ' メニュー' + log.menu + '</b>' +
       '<span class="vol">' + totalVolume(log.exercises).toLocaleString() + 'kg</span>';
+
+    // 削除は破壊的な操作なので、常時目立つ位置には置かない
+    const del = document.createElement("button");
+    del.className = "log-del";
+    del.innerHTML = icon("trash");
+    del.title = "この記録を削除";
+    del.setAttribute("aria-label", "この記録を削除");
+    del.onclick = () => {
+      if (!confirm(formatDate(log.date) + " の記録を削除しますか？")) return;
+      markDeleted(log.id);
+      saveLogs(loadLogs().filter(l => l.id !== log.id));
+      renderHistory();
+    };
+    head.appendChild(del);
     card.appendChild(head);
 
     const body = document.createElement("div");
@@ -1575,18 +1667,6 @@ function renderHistory() {
       card.appendChild(memo);
     }
 
-    const del = document.createElement("button");
-    del.className = "danger";
-    del.textContent = "この記録を削除";
-    del.style.marginTop = "8px";
-    del.onclick = () => {
-      if (!confirm(formatDate(log.date) + " の記録を削除しますか？")) return;
-      markDeleted(log.id);
-      saveLogs(loadLogs().filter(l => l.id !== log.id));
-      renderHistory();
-    };
-    card.appendChild(del);
-
     container.appendChild(card);
   }
   showScreen("history", "履歴");
@@ -1594,7 +1674,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-26.2";
+const APP_VERSION = "2026-08-26.3";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 applyTheme(loadTheme());
