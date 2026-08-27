@@ -355,6 +355,7 @@ textarea { resize: vertical; min-height: 64px; }
 /* ---------- 履歴 ---------- */
 .log-head { display: flex; align-items: baseline; gap: var(--s2); }
 .log-head b { font-size: var(--t-md); font-weight: 600; letter-spacing: -0.015em; }
+.log-head .time { font-size: var(--t-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .log-head .vol { font-size: var(--t-xs); color: var(--ink-3); margin-left: auto;
                  font-variant-numeric: tabular-nums; }
 .log-body { font-size: var(--t-sm); margin-top: var(--s2); line-height: 1.7;
@@ -931,6 +932,15 @@ function formatDate(iso) {
   const [y, m, d] = iso.split("-");
   const week = "日月火水木金土"[new Date(iso + "T00:00:00").getDay()];
   return Number(m) + "/" + Number(d) + "（" + week + "）";
+}
+// 保存した時刻（savedAt の ISO文字列）を "19:32" の形にする。
+// 古い記録には savedAt が無いので、その場合は空文字を返す
+function formatTime(savedAt) {
+  if (!savedAt) return "";
+  const d = new Date(savedAt);
+  if (isNaN(d)) return "";
+  const p = n => String(n).padStart(2, "0");
+  return p(d.getHours()) + ":" + p(d.getMinutes());
 }
 // セット配列 → "30kg × 10,10,8"（重量が混在する場合は "30kg×10, 32.5kg×8"）
 function formatSets(sets) {
@@ -1591,6 +1601,7 @@ document.getElementById("saveBtn").onclick = () => {
   logs.push({
     id: Date.now(),
     date: draft.date,
+    savedAt: new Date().toISOString(),   // 保存した時刻（実施日とは別。実施日は編集できるため）
     menu: draft.menu,
     memo: draft.memo,
     exercises: exercises
@@ -1758,8 +1769,10 @@ function renderHistory() {
 
     const head = document.createElement("div");
     head.className = "log-head";
+    const time = formatTime(log.savedAt);
     head.innerHTML =
       '<b>' + formatDate(log.date) + ' メニュー' + log.menu + '</b>' +
+      (time ? '<span class="time">' + time + '</span>' : '') +
       '<span class="vol">' + totalVolume(log.exercises).toLocaleString() + 'kg</span>';
 
     // 削除は破壊的な操作なので、常時目立つ位置には置かない
@@ -1809,7 +1822,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-27.1";
+const APP_VERSION = "2026-08-27.2";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 applyTheme(loadTheme());
