@@ -1022,12 +1022,56 @@ function replay(el, className) {
   void el.offsetWidth;
   el.classList.add(className);
 }
-backBtn.onclick = () => renderHome();
+// ===== ブラウザの履歴と連動 ==========================================
+// マウスのサイドボタン、ブラウザの戻る/進む、Macのスワイプはすべて履歴操作なので、
+// 画面の切り替えを history に積んでおかないとアプリごと離脱してしまう。
+let currentState = { s: "home" };
+let handlingPop = false;   // popstate 経由の描画では履歴を積み直さない
+
+let replaceNext = false;   // 保存後のように、前の画面に戻したくないとき
+
+function goTo(state) {
+  if (!handlingPop) {
+    if (replaceNext) history.replaceState(state, "");
+    else history.pushState(state, "");
+  }
+  replaceNext = false;
+  currentState = state;
+}
+
+function renderState(state) {
+  const s = (state && state.s) || "home";
+  if (s === "workout" && MENUS[state.menu]) renderWorkout(state.menu);
+  else if (s === "history") renderHistory();
+  else if (s === "settings") renderSettings();
+  else renderHome();
+}
+
+window.addEventListener("popstate", event => {
+  handlingPop = true;
+  const next = event.state || { s: "home" };
+
+  // ポップアップを開いた状態で戻ったときは、閉じるだけにする（下の画面は作り直さない）
+  if (currentState.s === "modal" && next.s === currentState.under) {
+    closeModal();
+    currentState = next;
+  } else {
+    if (!modal.hidden) closeModal();
+    renderState(next);
+    currentState = next;
+  }
+  handlingPop = false;
+});
+
+backBtn.onclick = () => history.back();
 historyBtn.onclick = () => renderHistory();
-settingsBtn.onclick = () => {
+settingsBtn.onclick = () => renderSettings();
+
+function renderSettings() {
   updateDataCard();
+  goTo({ s: "settings" });
   showScreen("settings", "設定");
-};
+}
 
 // ===== ホーム画面 =====================================================
 function nextMenuId() {
@@ -1065,6 +1109,7 @@ function renderHome() {
   }
 
   drawSummaryTiles(logs);
+  goTo({ s: "home" });
   showScreen("home", "筋トレ記録");
 }
 
@@ -1251,6 +1296,27 @@ let currentMenu = null;
 function renderWorkout(menuId) {
   const menu = MENUS[menuId];
   currentMenu = menu;
+
+  // 入力途中で画面を離れても消えないよう、同じメニューなら下書きを引き継ぐ
+  const hasInput = draft && draft.exercises.some(
+    ex => ex.sets.some(set => set.reps !== "" && Number(set.reps) > 0)
+  );
+  if (hasInput && draft.menu === menuId) {
+    document.getElementById("dateInput").value = draft.date;
+    document.getElementById("dateInput").onchange = e => { draft.date = e.target.value; };
+    const memo = document.getElementById("memoInput");
+    memo.value = draft.memo;
+    memo.oninput = e => { draft.memo = e.target.value; };
+    drawExercises();
+    goTo({ s: "workout", menu: menuId });
+    showScreen("workout", "メニュー" + menuId);
+    updateProgress();
+    return;
+  }
+  if (hasInput && !confirm("入力中の内容が保存されていません。破棄して別のメニューを開きますか？")) {
+    return;
+  }
+
   draft = {
     date: todayString(),
     menu: menuId,
@@ -1275,6 +1341,7 @@ function renderWorkout(menuId) {
   memoInput.oninput = e => { draft.memo = e.target.value; };
 
   drawExercises();
+  goTo({ s: "workout", menu: menuId });
   showScreen("workout", "メニュー" + menuId);
   updateProgress();
 }
@@ -1530,9 +1597,12 @@ document.getElementById("saveBtn").onclick = () => {
   });
   saveLogs(logs);
   const setCount = exercises.reduce((n, ex) => n + ex.sets.length, 0);
+  const savedMenu = draft.menu;
+  draft = null;            // 保存済みなので下書きは破棄する
+  replaceNext = true;      // 保存した記録画面へは戻さない
   renderHome();
   showToast(
-    "メニュー" + draft.menu + " を記録しました",
+    "メニュー" + savedMenu + " を記録しました",
     exercises.length + "種目 / " + setCount + "セット / 総挙上量 " +
       totalVolume(exercises).toLocaleString() + "kg"
   );
@@ -1551,6 +1621,10 @@ function openArtModal(def) {
   modalExercise = def;
   drawModal();
   modal.hidden = false;
+  // 戻る操作でポップアップだけを閉じられるようにする
+  const under = currentState.s;
+  history.pushState({ s: "modal", under: under }, "");
+  currentState = { s: "modal", under: under };
 }
 function drawModal() {
   // 図解はタップで大きくできる（初回は小さく出して履歴を優先する）
@@ -1620,8 +1694,13 @@ function closeModal() {
   const timer = setTimeout(finish, 700);
   modal.addEventListener("animationend", () => { clearTimeout(timer); finish(); }, { once: true });
 }
-document.getElementById("modalClose").onclick = closeModal;
-modal.onclick = e => { if (e.target === modal) closeModal(); };
+// 閉じる操作は履歴を1つ戻す形にして、戻るボタンと挙動を揃える
+function dismissModal() {
+  if (currentState.s === "modal") history.back();
+  else closeModal();
+}
+document.getElementById("modalClose").onclick = dismissModal;
+modal.onclick = e => { if (e.target === modal) dismissModal(); };
 
 // 選んだ画像を縮小してから localStorage に保存する（そのままだと容量を超える）
 photoInput.onchange = () => {
@@ -1724,15 +1803,17 @@ function renderHistory() {
 
     container.appendChild(card);
   }
+  goTo({ s: "history" });
   showScreen("history", "履歴");
 }
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-26.4";
+const APP_VERSION = "2026-08-27.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 applyTheme(loadTheme());
+history.replaceState({ s: "home" }, "");
 renderHome();
 requestPersistentStorage();
 
