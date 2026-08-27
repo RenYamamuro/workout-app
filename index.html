@@ -404,17 +404,37 @@ textarea { resize: vertical; min-height: 64px; }
 .illust.big { width: 96px; height: 96px; flex: none; margin: 0; }
 .illust.big.zoom { width: 100%; height: auto; aspect-ratio: 1 / 1; }
 
+/* ---------- 通知 ---------- */
+.toast {
+  position: fixed; z-index: 60;
+  left: var(--s4); right: var(--s4);
+  bottom: calc(env(safe-area-inset-bottom) + var(--s5));
+  margin: 0 auto; max-width: 360px;
+  display: flex; align-items: center; gap: var(--s2);
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  padding: var(--s3); font-size: var(--t-sm);
+}
+.toast .ic { color: var(--good); }
+.toast .msg { flex: 1; min-width: 0; }
+.toast .sub { display: block; color: var(--ink-3); font-size: var(--t-xs); margin-top: 1px; }
+
 /* ---------- 動き ---------- */
 @keyframes view-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes pop-view-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @keyframes sheet-in { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes sheet-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-6px) scale(.985); } }
 @keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes toast-in  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(8px); } }
 @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
 
 .push-in { animation: view-in var(--anim) var(--ease); }
 .pop-in  { animation: pop-view-in var(--anim) var(--ease); }
 #title.changed { animation: fade-in var(--anim) var(--ease); }
+.toast { animation: toast-in var(--anim) var(--ease); }
+.toast.closing { animation: toast-out var(--fast) var(--ease) forwards; }
 .modal { animation: fade-in var(--fast) var(--ease); }
 .modal .modal-card { animation: sheet-in var(--anim) var(--ease); }
 .modal.closing { animation: fade-out var(--fast) var(--ease) forwards; }
@@ -423,7 +443,8 @@ textarea { resize: vertical; min-height: 64px; }
 @media (prefers-reduced-motion: reduce) {
   .push-in, .pop-in, #title.changed,
   .modal, .modal .modal-card,
-  .modal.closing, .modal.closing .modal-card { animation: none; }
+  .modal.closing, .modal.closing .modal-card,
+  .toast, .toast.closing { animation: none; }
 }
 
 /* iOSで入力時に画面が拡大しないよう、実寸16px以上を確保する */
@@ -534,6 +555,8 @@ textarea { resize: vertical; min-height: 64px; }
     <div id="logList"></div>
   </section>
 </main>
+
+<div class="toast" id="toast" hidden></div>
 
 <!-- 図解の拡大 + 写真の登録 -->
 <div class="modal" id="modal" hidden>
@@ -936,6 +959,29 @@ const ICONS = {
 };
 function icon(name) { return '<svg ' + IC_ATTR + '>' + ICONS[name] + '</svg>'; }
 
+// ===== 通知（保存できたことを伝える） ================================
+const toastEl = document.getElementById("toast");
+let toastTimer = null, toastHide = null;
+
+function showToast(message, sub) {
+  clearTimeout(toastTimer);
+  clearTimeout(toastHide);
+  toastEl.classList.remove("closing");
+  toastEl.innerHTML =
+    icon("check") +
+    '<span class="msg">' + message +
+    (sub ? '<span class="sub">' + sub + '</span>' : '') + '</span>';
+  toastEl.hidden = false;
+
+  toastTimer = setTimeout(() => {
+    toastEl.classList.add("closing");
+    toastHide = setTimeout(() => {
+      toastEl.hidden = true;
+      toastEl.classList.remove("closing");
+    }, 200);
+  }, 2600);
+}
+
 // ===== 画面の切り替え =================================================
 const screens = {
   home:     document.getElementById("homeScreen"),
@@ -1148,6 +1194,7 @@ document.getElementById("exportBtn").onclick = () => {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast("書き出しました", a.download);
 };
 
 document.getElementById("importInput").onchange = event => {
@@ -1190,7 +1237,9 @@ document.getElementById("importInput").onchange = event => {
     saveLogs(current.concat(newLogs));
     savePhotos(photos);
     renderHome();
-    alert("読み込みました。");
+    updateDataCard();
+    showToast("読み込みました",
+              "記録 " + newLogs.length + "件 / 写真 " + newPhotos + "枚を追加");
   };
   reader.readAsText(file);
 };
@@ -1480,7 +1529,13 @@ document.getElementById("saveBtn").onclick = () => {
     exercises: exercises
   });
   saveLogs(logs);
+  const setCount = exercises.reduce((n, ex) => n + ex.sets.length, 0);
   renderHome();
+  showToast(
+    "メニュー" + draft.menu + " を記録しました",
+    exercises.length + "種目 / " + setCount + "セット / 総挙上量 " +
+      totalVolume(exercises).toLocaleString() + "kg"
+  );
 };
 
 // ===== 図解の拡大 + 写真の登録 ========================================
@@ -1674,7 +1729,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-26.3";
+const APP_VERSION = "2026-08-26.4";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 applyTheme(loadTheme());
