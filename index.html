@@ -355,7 +355,7 @@ textarea { resize: vertical; min-height: 64px; }
 /* ---------- 履歴 ---------- */
 .log-head { display: flex; align-items: baseline; gap: var(--s2); }
 .log-head b { font-size: var(--t-md); font-weight: 600; letter-spacing: -0.015em; }
-.log-head .time { font-size: var(--t-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.log-time { font-size: var(--t-xs); color: var(--ink-3); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .log-head .vol { font-size: var(--t-xs); color: var(--ink-3); margin-left: auto;
                  font-variant-numeric: tabular-nums; }
 .log-body { font-size: var(--t-sm); margin-top: var(--s2); line-height: 1.7;
@@ -369,7 +369,8 @@ textarea { resize: vertical; min-height: 64px; }
   flex: none; border: 0; background: none; box-shadow: none;
   color: var(--ink-3); padding: var(--s1); margin-left: var(--s2);
 }
-.log-del:hover { color: var(--crit); background: var(--crit-wash); }
+.log-del:hover { color: var(--ink); background: var(--hover); }
+.log-del.log-trash:hover { color: var(--crit); background: var(--crit-wash); }
 .empty { text-align: center; color: var(--ink-3); padding: var(--s7) 0; font-size: var(--t-sm); }
 
 .hist { margin-top: var(--s4); border-top: 1px solid var(--line); padding-top: var(--s3); }
@@ -833,9 +834,18 @@ function savePhotos(photos) {
     return false;
   }
 }
+// 編集中に「前回」「自己ベスト」がその記録自身を指してしまわないよう、
+// 対象のidを一時的に除外できるようにしておく（編集画面を離れたら必ずnullに戻す）
+let excludeLogId = null;
+
 // 日付の新しい順に並べた配列を返す
 function sortedLogs() {
-  return loadLogs().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  return loadLogs()
+    .filter(l => l.id !== excludeLogId)
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+function findLogById(id) {
+  return loadLogs().find(l => l.id === id) || null;
 }
 // 種目名から、直近の記録（セット配列）を探す
 function findLastRecord(exerciseName) {
@@ -965,7 +975,8 @@ const ICONS = {
   minus: '<path d="M3.2 8h9.6"/>',
   close: '<path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6"/>',
   check: '<path d="M3.2 8.4 6.3 11.5 12.8 4.9"/>',
-  trash: '<path d="M2.8 4.4h10.4M6.4 4.4V2.8h3.2v1.6M4.4 4.4l.6 8.8h6l.6-8.8"/>'
+  trash: '<path d="M2.8 4.4h10.4M6.4 4.4V2.8h3.2v1.6M4.4 4.4l.6 8.8h6l.6-8.8"/>',
+  edit:  '<path d="M9.4 3.4 12.6 6.6 5 14.2H1.8V11z"/><path d="M8 4.8 11.2 8"/>'
 };
 function icon(name) { return '<svg ' + IC_ATTR + '>' + ICONS[name] + '</svg>'; }
 
@@ -1051,7 +1062,9 @@ function goTo(state) {
 
 function renderState(state) {
   const s = (state && state.s) || "home";
-  if (s === "workout" && MENUS[state.menu]) renderWorkout(state.menu);
+  if (s === "workout" && MENUS[state.menu]) {
+    renderWorkout(state.menu, state.editId ? findLogById(state.editId) : null);
+  }
   else if (s === "history") renderHistory();
   else if (s === "settings") renderSettings();
   else renderHome();
@@ -1078,6 +1091,7 @@ historyBtn.onclick = () => renderHistory();
 settingsBtn.onclick = () => renderSettings();
 
 function renderSettings() {
+  excludeLogId = null;
   updateDataCard();
   goTo({ s: "settings" });
   showScreen("settings", "設定");
@@ -1098,6 +1112,7 @@ function lastDoneOf(menuId) {
 }
 
 function renderHome() {
+  excludeLogId = null;
   const next = nextMenuId();
   const logs = sortedLogs();
   const list = document.getElementById("menuList");
@@ -1303,35 +1318,58 @@ document.getElementById("importInput").onchange = event => {
 let draft = null;      // 入力中のワークアウト
 let currentMenu = null;
 
-function renderWorkout(menuId) {
+function renderWorkout(menuId, editLog) {
   const menu = MENUS[menuId];
   currentMenu = menu;
 
-  // 入力途中で画面を離れても消えないよう、同じメニューなら下書きを引き継ぐ
+  // 入力途中で画面を離れても消えないよう、同じ編集対象なら下書きを引き継ぐ
   const hasInput = draft && draft.exercises.some(
     ex => ex.sets.some(set => set.reps !== "" && Number(set.reps) > 0)
   );
-  if (hasInput && draft.menu === menuId) {
+  const sameTarget = draft && draft.menu === menuId &&
+    (draft.editingId || null) === (editLog ? editLog.id : null);
+
+  if (hasInput && sameTarget) {
     document.getElementById("dateInput").value = draft.date;
     document.getElementById("dateInput").onchange = e => { draft.date = e.target.value; };
     const memo = document.getElementById("memoInput");
     memo.value = draft.memo;
     memo.oninput = e => { draft.memo = e.target.value; };
+    document.getElementById("saveBtn").textContent = draft.editingId ? "この内容で更新" : "この内容で保存";
+    excludeLogId = editLog ? editLog.id : null;
     drawExercises();
-    goTo({ s: "workout", menu: menuId });
+    goTo({ s: "workout", menu: menuId, editId: editLog ? editLog.id : undefined });
     showScreen("workout", "メニュー" + menuId);
     updateProgress();
     return;
   }
-  if (hasInput && !confirm("入力中の内容が保存されていません。破棄して別のメニューを開きますか？")) {
+  if (hasInput && !confirm(
+    editLog ? "入力中の内容が保存されていません。破棄してこの記録を編集しますか？"
+            : "入力中の内容が保存されていません。破棄して別のメニューを開きますか？"
+  )) {
     return;
   }
 
+  // 除外は findLastRecord など各所から参照されるので、draft を組み立てる前に切り替える
+  excludeLogId = editLog ? editLog.id : null;
+
   draft = {
-    date: todayString(),
+    date: editLog ? editLog.date : todayString(),
     menu: menuId,
-    memo: "",
+    memo: editLog ? (editLog.memo || "") : "",
+    editingId: editLog ? editLog.id : null,
     exercises: menu.exercises.map(def => {
+      // 編集中の記録にその種目があれば、実際の値をそのまま使う
+      const fromLog = editLog && editLog.exercises.find(ex => ex.name === def.name);
+      if (fromLog) {
+        return {
+          name: def.name,
+          sets: fromLog.sets.map(s => ({
+            weight: s.weight === null ? "" : String(s.weight),
+            reps: String(s.reps)
+          }))
+        };
+      }
       const last = findLastRecord(def.name);
       const setCount = parseTarget(def.target).sets;
       // 前回と同じ重量を初期値に入れておく（毎回打ち直さなくて済む）
@@ -1347,22 +1385,24 @@ function renderWorkout(menuId) {
   dateInput.value = draft.date;
   dateInput.onchange = e => { draft.date = e.target.value; };
   const memoInput = document.getElementById("memoInput");
-  memoInput.value = "";
+  memoInput.value = draft.memo;
   memoInput.oninput = e => { draft.memo = e.target.value; };
+  document.getElementById("saveBtn").textContent = editLog ? "この内容で更新" : "この内容で保存";
 
   drawExercises();
-  goTo({ s: "workout", menu: menuId });
+  goTo({ s: "workout", menu: menuId, editId: editLog ? editLog.id : undefined });
   showScreen("workout", "メニュー" + menuId);
   updateProgress();
 }
 
-// ヘッダーのタイトルに進捗を出す（メニューC 3/7 のように）
+// ヘッダーのタイトルに進捗を出す（メニューC 3/7 のように。編集中は先頭に明記する）
 function updateProgress() {
   if (!draft) return;
   const done = draft.exercises.filter(
     ex => ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0)
   ).length;
-  titleEl.innerHTML = "メニュー" + draft.menu +
+  const prefix = draft.editingId ? "編集：" : "";
+  titleEl.innerHTML = prefix + "メニュー" + draft.menu +
     '<span class="count">' + done + " / " + draft.exercises.length + "</span>";
 }
 
@@ -1598,22 +1638,42 @@ document.getElementById("saveBtn").onclick = () => {
   }
 
   const logs = loadLogs();
-  logs.push({
-    id: Date.now(),
-    date: draft.date,
-    savedAt: new Date().toISOString(),   // 保存した時刻（実施日とは別。実施日は編集できるため）
-    menu: draft.menu,
-    memo: draft.memo,
-    exercises: exercises
-  });
-  saveLogs(logs);
-  const setCount = exercises.reduce((n, ex) => n + ex.sets.length, 0);
+  const isEdit = !!draft.editingId;
   const savedMenu = draft.menu;
-  draft = null;            // 保存済みなので下書きは破棄する
-  replaceNext = true;      // 保存した記録画面へは戻さない
+
+  if (isEdit) {
+    const idx = logs.findIndex(l => l.id === draft.editingId);
+    if (idx === -1) {
+      // 編集中に別の場所（他端末の同期など）で削除された場合
+      alert("この記録は既に削除されているため、更新できませんでした。");
+      return;
+    }
+    logs[idx] = {
+      ...logs[idx],
+      date: draft.date,
+      memo: draft.memo,
+      exercises: exercises,
+      editedAt: new Date().toISOString()   // 元の savedAt は保ち、編集した事実だけ加える
+    };
+  } else {
+    logs.push({
+      id: Date.now(),
+      date: draft.date,
+      savedAt: new Date().toISOString(),   // 保存した時刻（実施日とは別。実施日は編集できるため）
+      menu: draft.menu,
+      memo: draft.memo,
+      exercises: exercises
+    });
+  }
+  saveLogs(logs);
+
+  const setCount = exercises.reduce((n, ex) => n + ex.sets.length, 0);
+  draft = null;             // 保存済みなので下書きは破棄する
+  excludeLogId = null;
+  replaceNext = true;       // 保存した記録画面へは戻さない
   renderHome();
   showToast(
-    "メニュー" + savedMenu + " を記録しました",
+    "メニュー" + savedMenu + (isEdit ? " を更新しました" : " を記録しました"),
     exercises.length + "種目 / " + setCount + "セット / 総挙上量 " +
       totalVolume(exercises).toLocaleString() + "kg"
   );
@@ -1754,6 +1814,7 @@ photoDelete.onclick = () => {
 
 // ===== 履歴画面 =======================================================
 function renderHistory() {
+  excludeLogId = null;
   const container = document.getElementById("logList");
   container.innerHTML = "";
   const logs = sortedLogs();
@@ -1769,15 +1830,22 @@ function renderHistory() {
 
     const head = document.createElement("div");
     head.className = "log-head";
-    const time = formatTime(log.savedAt);
     head.innerHTML =
       '<b>' + formatDate(log.date) + ' メニュー' + log.menu + '</b>' +
-      (time ? '<span class="time">' + time + '</span>' : '') +
       '<span class="vol">' + totalVolume(log.exercises).toLocaleString() + 'kg</span>';
+
+    // 編集：内容を直して保存し直す（間違えて保存してしまったときの修正用）
+    const edit = document.createElement("button");
+    edit.className = "log-del";
+    edit.innerHTML = icon("edit");
+    edit.title = "この記録を編集";
+    edit.setAttribute("aria-label", "この記録を編集");
+    edit.onclick = () => renderWorkout(log.menu, log);
+    head.appendChild(edit);
 
     // 削除は破壊的な操作なので、常時目立つ位置には置かない
     const del = document.createElement("button");
-    del.className = "log-del";
+    del.className = "log-del log-trash";
     del.innerHTML = icon("trash");
     del.title = "この記録を削除";
     del.setAttribute("aria-label", "この記録を削除");
@@ -1789,6 +1857,15 @@ function renderHistory() {
     };
     head.appendChild(del);
     card.appendChild(head);
+
+    const time = formatTime(log.savedAt);
+    const editedTime = formatTime(log.editedAt);
+    if (time) {
+      const timeLine = document.createElement("div");
+      timeLine.className = "log-time";
+      timeLine.textContent = time + (editedTime ? "（編集 " + editedTime + "）" : "");
+      card.appendChild(timeLine);
+    }
 
     const body = document.createElement("div");
     body.className = "log-body";
@@ -1822,7 +1899,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-27.2";
+const APP_VERSION = "2026-08-27.3";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 applyTheme(loadTheme());
