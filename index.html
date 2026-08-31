@@ -473,6 +473,17 @@ textarea { resize: vertical; min-height: 64px; }
 <main>
   <!-- ホーム画面 -->
   <section id="homeScreen">
+    <div class="card" id="resumeCard" hidden>
+      <div class="row" style="margin-bottom:4px">
+        <b style="font-size:15px" id="resumeTitle"></b>
+        <span class="muted" id="resumeAge" style="margin-left:auto"></span>
+      </div>
+      <p class="muted" id="resumeNote" style="margin:0 0 10px"></p>
+      <div class="row">
+        <button class="primary" id="resumeBtn">続きから入力</button>
+        <button class="link" id="resumeDiscard">破棄</button>
+      </div>
+    </div>
     <div class="tiles" id="summaryTiles"></div>
     <div id="menuList"></div>
     <p class="muted" style="margin:var(--s3) var(--s1) 0">
@@ -546,6 +557,17 @@ textarea { resize: vertical; min-height: 64px; }
       <p class="muted" style="margin:6px 0 0;font-size:11px">
         アプリの版 <span id="appVersion"></span>
       </p>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:6px">
+        <b style="font-size:15px">保存忘れの通知</b>
+        <span class="seg" id="reminderSeg" style="margin-left:auto">
+          <button data-reminder-value="off">オフ</button>
+          <button data-reminder-value="on">オン</button>
+        </span>
+      </div>
+      <p class="muted" id="reminderNote" style="margin:0"></p>
     </div>
   </section>
 
@@ -1113,6 +1135,7 @@ function lastDoneOf(menuId) {
 
 function renderHome() {
   excludeLogId = null;
+  drawResumeCard();
   const next = nextMenuId();
   const logs = sortedLogs();
   const list = document.getElementById("menuList");
@@ -1137,6 +1160,35 @@ function renderHome() {
   goTo({ s: "home" });
   showScreen("home", "筋トレ記録");
 }
+
+// 保存されていない入力があれば、ホームの一番上に出す
+function drawResumeCard() {
+  const card = document.getElementById("resumeCard");
+  if (!draftHasInput(draft)) { card.hidden = true; return; }
+
+  card.hidden = false;
+  const doneCount = draft.exercises.filter(
+    ex => ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0)
+  ).length;
+  document.getElementById("resumeTitle").textContent =
+    (draft.editingId ? "編集の続き：メニュー" : "続きがあります：メニュー") + draft.menu;
+  document.getElementById("resumeNote").textContent =
+    doneCount + "種目を入力したまま、保存されていません。";
+  const wip = loadPersistedDraft();
+  document.getElementById("resumeAge").textContent = wip ? formatElapsed(wip.updatedAt) : "";
+}
+document.getElementById("resumeBtn").onclick = () => {
+  if (!draft) return;
+  if (draft.editingId) renderWorkout(draft.menu, findLogById(draft.editingId));
+  else renderWorkout(draft.menu);
+};
+document.getElementById("resumeDiscard").onclick = () => {
+  if (!confirm("未保存の入力を破棄しますか？")) return;
+  draft = null;
+  excludeLogId = null;
+  clearPersistedDraft();
+  renderHome();
+};
 
 function drawSummaryTiles(logs) {
   const box = document.getElementById("summaryTiles");
@@ -1318,23 +1370,52 @@ document.getElementById("importInput").onchange = event => {
 let draft = null;      // 入力中のワークアウト
 let currentMenu = null;
 
+// 入力中の内容をブラウザに保存しておく。アプリを閉じてしまっても消えないようにするため
+// （保存ボタンを押し忘れたまま完全終了すると、それまでの入力が消えていた問題への対応）
+const DRAFT_KEY = "workout-draft-wip-v1";
+const REMINDER_NOTIFIED_KEY = "workout-reminder-notified-v1";   // どの更新時刻について通知済みか
+
+function draftHasInput(d) {
+  return !!d && d.exercises.some(ex => ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0));
+}
+function persistDraft() {
+  if (!draftHasInput(draft)) { clearPersistedDraft(); return; }
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ draft, updatedAt: new Date().toISOString() }));
+}
+function loadPersistedDraft() {
+  try {
+    const wip = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    return (wip && wip.draft && MENUS[wip.draft.menu]) ? wip : null;
+  } catch (e) { return null; }
+}
+function clearPersistedDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+  localStorage.removeItem(REMINDER_NOTIFIED_KEY);
+}
+// 経過時間を「12分前」のような日本語にする
+function formatElapsed(iso) {
+  const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (min < 1) return "たった今";
+  if (min < 60) return min + "分前";
+  const h = Math.floor(min / 60);
+  return h + "時間" + (min % 60 ? (min % 60) + "分" : "") + "前";
+}
+
 function renderWorkout(menuId, editLog) {
   const menu = MENUS[menuId];
   currentMenu = menu;
 
   // 入力途中で画面を離れても消えないよう、同じ編集対象なら下書きを引き継ぐ
-  const hasInput = draft && draft.exercises.some(
-    ex => ex.sets.some(set => set.reps !== "" && Number(set.reps) > 0)
-  );
+  const hasInput = draftHasInput(draft);
   const sameTarget = draft && draft.menu === menuId &&
     (draft.editingId || null) === (editLog ? editLog.id : null);
 
   if (hasInput && sameTarget) {
     document.getElementById("dateInput").value = draft.date;
-    document.getElementById("dateInput").onchange = e => { draft.date = e.target.value; };
+    document.getElementById("dateInput").onchange = e => { draft.date = e.target.value; persistDraft(); };
     const memo = document.getElementById("memoInput");
     memo.value = draft.memo;
-    memo.oninput = e => { draft.memo = e.target.value; };
+    memo.oninput = e => { draft.memo = e.target.value; persistDraft(); };
     document.getElementById("saveBtn").textContent = draft.editingId ? "この内容で更新" : "この内容で保存";
     excludeLogId = editLog ? editLog.id : null;
     drawExercises();
@@ -1349,6 +1430,7 @@ function renderWorkout(menuId, editLog) {
   )) {
     return;
   }
+  if (hasInput) clearPersistedDraft();   // 破棄が確定したので、保存忘れの通知対象からも外す
 
   // 除外は findLastRecord など各所から参照されるので、draft を組み立てる前に切り替える
   excludeLogId = editLog ? editLog.id : null;
@@ -1383,10 +1465,10 @@ function renderWorkout(menuId, editLog) {
 
   const dateInput = document.getElementById("dateInput");
   dateInput.value = draft.date;
-  dateInput.onchange = e => { draft.date = e.target.value; };
+  dateInput.onchange = e => { draft.date = e.target.value; persistDraft(); };
   const memoInput = document.getElementById("memoInput");
   memoInput.value = draft.memo;
-  memoInput.oninput = e => { draft.memo = e.target.value; };
+  memoInput.oninput = e => { draft.memo = e.target.value; persistDraft(); };
   document.getElementById("saveBtn").textContent = editLog ? "この内容で更新" : "この内容で保存";
 
   drawExercises();
@@ -1404,6 +1486,7 @@ function updateProgress() {
   const prefix = draft.editingId ? "編集：" : "";
   titleEl.innerHTML = prefix + "メニュー" + draft.menu +
     '<span class="count">' + done + " / " + draft.exercises.length + "</span>";
+  persistDraft();
 }
 
 function drawExercises() {
@@ -1517,6 +1600,7 @@ function drawExercises() {
       drawSets();
       updateHint();
       updateEstimate();
+      updateProgress();
     }
 
     function drawSets() {
@@ -1541,7 +1625,7 @@ function drawExercises() {
         const w = document.createElement("input");
         w.type = "number"; w.inputMode = "decimal"; w.step = "0.5"; w.min = "0";
         w.placeholder = "重量"; w.value = set.weight;
-        w.oninput = () => { set.weight = w.value; updateEstimate(); };
+        w.oninput = () => { set.weight = w.value; updateEstimate(); updateProgress(); };
         wField.appendChild(w);
         const wUnit = document.createElement("span");
         wUnit.className = "unit"; wUnit.textContent = "kg";
@@ -1597,7 +1681,7 @@ function drawExercises() {
         const sets = draft.exercises[exIndex].sets;
         const lastSet = sets[sets.length - 1];
         sets.push({ weight: lastSet ? lastSet.weight : "", reps: "" });
-        drawSets(); updateHint();
+        drawSets(); updateHint(); updateProgress();
       };
       footer.appendChild(add);
 
@@ -1670,6 +1754,7 @@ document.getElementById("saveBtn").onclick = () => {
   const setCount = exercises.reduce((n, ex) => n + ex.sets.length, 0);
   draft = null;             // 保存済みなので下書きは破棄する
   excludeLogId = null;
+  clearPersistedDraft();    // 保存できたので「保存忘れ」の対象からも外す
   replaceNext = true;       // 保存した記録画面へは戻さない
   renderHome();
   showToast(
@@ -1899,13 +1984,98 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-27.3";
+const APP_VERSION = "2026-08-28.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
+// ===== 保存忘れの通知 ==================================================
+// アプリを開いている間だけ働く（完全に閉じている1時間には気づけない）。
+// iOS Safari は Notification コンストラクタ未対応のため、必ず Service Worker 経由で出す。
+const REMINDER_KEY = "workout-reminder-v1";
+const REMINDER_INTERVAL_MS = 5 * 60 * 1000;   // 5分おきに確認する
+const REMINDER_AFTER_MS = 60 * 60 * 1000;     // 1時間
+
+function loadReminderSetting() {
+  return localStorage.getItem(REMINDER_KEY) === "on" ? "on" : "off";
+}
+
+async function notifyUnsaved(wip) {
+  const body = "メニュー" + wip.draft.menu + " の記録が、" +
+               formatElapsed(wip.updatedAt) + "から保存されていません。";
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification("保存忘れはありませんか？", {
+      body, tag: "workout-unsaved", icon: "icons/icon-192-v2.png"
+    });
+  } catch (e) {
+    // Service Worker が使えない環境向けの保険（デスクトップ版Chromeなど）
+    if ("Notification" in window) new Notification("保存忘れはありませんか？", { body });
+  }
+}
+
+function checkReminder() {
+  if (loadReminderSetting() !== "on") return;
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const wip = loadPersistedDraft();
+  if (!wip) return;
+  if (Date.now() - new Date(wip.updatedAt).getTime() < REMINDER_AFTER_MS) return;
+  if (localStorage.getItem(REMINDER_NOTIFIED_KEY) === wip.updatedAt) return;   // 同じ下書きには一度だけ
+  notifyUnsaved(wip);
+  localStorage.setItem(REMINDER_NOTIFIED_KEY, wip.updatedAt);
+}
+
+const reminderSeg = document.getElementById("reminderSeg");
+const reminderNote = document.getElementById("reminderNote");
+
+function drawReminderSeg() {
+  const value = loadReminderSetting();
+  for (const btn of reminderSeg.children) {
+    btn.classList.toggle("on", btn.dataset.reminderValue === value);
+  }
+  if (!("Notification" in window)) {
+    reminderNote.textContent = "このブラウザは通知に対応していません。";
+  } else if (Notification.permission === "denied") {
+    reminderNote.textContent = "通知がブロックされています。ブラウザの設定から許可してください。";
+  } else if (value === "on") {
+    reminderNote.textContent =
+      "最後に入力してから1時間、保存されていなければ通知します。" +
+      "アプリを開いている間だけ働くので、完全に閉じた場合は気づけません。";
+  } else {
+    reminderNote.textContent = "オンにすると、保存を忘れたまま1時間経ったときに通知します。";
+  }
+}
+
+for (const btn of reminderSeg.children) {
+  btn.onclick = async () => {
+    const value = btn.dataset.reminderValue;
+    if (value === "off") {
+      localStorage.setItem(REMINDER_KEY, "off");
+      drawReminderSeg();
+      return;
+    }
+    if (!("Notification" in window)) { drawReminderSeg(); return; }
+    const perm = Notification.permission === "granted"
+      ? "granted" : await Notification.requestPermission();
+    if (perm === "granted") {
+      localStorage.setItem(REMINDER_KEY, "on");
+      checkReminder();
+    }
+    drawReminderSeg();
+  };
+}
+
+// ===== 起動 ===========================================================
 applyTheme(loadTheme());
+
+// 入力途中で完全終了しても、次に開いたときに続きから入力できるようにする
+const restoredWip = loadPersistedDraft();
+if (restoredWip) draft = restoredWip.draft;
+
 history.replaceState({ s: "home" }, "");
 renderHome();
+drawReminderSeg();
 requestPersistentStorage();
+if (loadReminderSetting() === "on") setInterval(checkReminder, REMINDER_INTERVAL_MS);
+checkReminder();
 
 // オフラインでも開けるようにする（file:// で開いた場合は登録できないので黙って諦める）
 if ("serviceWorker" in navigator &&
