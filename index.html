@@ -860,11 +860,17 @@ function savePhotos(photos) {
 // 対象のidを一時的に除外できるようにしておく（編集画面を離れたら必ずnullに戻す）
 let excludeLogId = null;
 
-// 日付の新しい順に並べた配列を返す
+// 日付の新しい順に並べた配列を返す。同じ日付の中では、実際に保存した時刻が新しい方を上にする
+// （date は編集で書き換えられるので主キーのまま。savedAt が無い古い記録は id（作成時刻）で代用する）
 function sortedLogs() {
   return loadLogs()
     .filter(l => l.id !== excludeLogId)
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      const at = new Date(a.savedAt || a.id).getTime();
+      const bt = new Date(b.savedAt || b.id).getTime();
+      return bt - at;
+    });
 }
 function findLogById(id) {
   return loadLogs().find(l => l.id === id) || null;
@@ -1984,7 +1990,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-08-28.1";
+const APP_VERSION = "2026-09-01.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
