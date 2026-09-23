@@ -110,7 +110,15 @@ async function syncNow() {
   }
 }
 
-// 記録の同期：クラウドと端末で足りないものを互いに補い、削除済みは両方から消す
+// 記録が最後に変わった時刻をミリ秒で返す（編集済みなら editedAt、無ければ savedAt、
+// それも無い古い記録は id＝作成時刻で代用する）
+function logMarker(log) {
+  const t = log.editedAt || log.savedAt;
+  return t ? new Date(t).getTime() : Number(log.id);
+}
+
+// 記録の同期：クラウドと端末で足りないものを互いに補い、
+// 両方にあるものは新しく更新された側を勝たせる（編集の反映漏れを防ぐため）。削除済みは両方から消す
 async function syncLogs() {
   const uid = currentUid;
   const snap = await F.getDocs(F.collection(db, "users", uid, "logs"));
@@ -118,8 +126,7 @@ async function syncLogs() {
   snap.forEach(d => remote.set(d.id, d.data()));
 
   const deleted  = window.loadDeleted();
-  const local    = window.loadLogs();
-  const localIds = new Set(local.map(l => String(l.id)));
+  const localMap = new Map(window.loadLogs().map(l => [String(l.id), l]));
 
   const batch = F.writeBatch(db);
   let writes = 0;
@@ -131,23 +138,31 @@ async function syncLogs() {
       writes++;
     }
   }
-  for (const log of local) {
-    const id = String(log.id);
-    if (!remote.has(id)) {
+
+  // 端末 → クラウド：クラウドに無い、または端末の方が新しく更新されているものを送る
+  for (const [id, log] of localMap) {
+    const remoteLog = remote.get(id);
+    if (!remoteLog || logMarker(log) > logMarker(remoteLog)) {
       batch.set(F.doc(db, "users", uid, "logs", id), log);
+      remote.set(id, log);   // このあとの「取り込み」判定が、今送った内容と比べて誤発火しないように
       writes++;
     }
   }
   if (writes) await batch.commit();
 
-  // クラウドにしかない記録を端末に取り込む
-  const incoming = [];
+  // クラウド → 端末：端末に無い、またはクラウドの方が新しく更新されているものを取り込む
+  let changed = false;
   remote.forEach((data, id) => {
-    if (!localIds.has(id) && !deleted.includes(id)) incoming.push(data);
+    if (deleted.includes(id)) return;
+    const localLog = localMap.get(id);
+    if (!localLog || logMarker(data) > logMarker(localLog)) {
+      localMap.set(id, data);
+      changed = true;
+    }
   });
-  if (incoming.length) {
+  if (changed) {
     // saveLogs を使うと同期が再帰的に走るので、ここでは直接書き込む
-    localStorage.setItem(LOGS_KEY, JSON.stringify(local.concat(incoming)));
+    localStorage.setItem(LOGS_KEY, JSON.stringify([...localMap.values()]));
     window.renderHome();
   }
 }
@@ -173,8 +188,10 @@ async function syncPhotos() {
     }
   }
   for (const name in local) {
-    if (!remote.has(name)) {
+    // 撮り直して登録し直した場合、内容が変わっていれば送り直す（idが同じで存在チェックだけだと反映されないため）
+    if (!remote.has(name) || remote.get(name) !== local[name]) {
       batch.set(F.doc(db, "users", uid, "photos", name), { data: local[name] });
+      remote.set(name, local[name]);
       writes++;
     }
   }
