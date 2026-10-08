@@ -680,6 +680,7 @@ const MENUS = {
     exercises: [
       { name: "スミスマシンベンチプレス",       target: "3×8〜10",  ratio: true, note: "フリーウェイトと重量が違うので「スミス」と分けて記録する" },
       { name: "アイソラテラルショルダープレス", target: "3×10",     note: "左右独立。左右差の修正に有利" },
+      { name: "チェストプレス",                 target: "3×10〜12", note: "座って押すマシン。軌道が安定。初回は軽めで確認" },
       { name: "ペクトラルフライ",               target: "3×12〜15", note: "胸の単関節種目。初回は軽めで軌道確認" },
       { name: "レッグエクステンション",         target: "3×12〜15", note: "大腿四頭筋" },
       { name: "ケーブルプレスダウン",           target: "2×12",     note: "三頭の単関節種目" },
@@ -698,15 +699,15 @@ const MENUS = {
     ]
   },
   C: {
-    title: "脚メイン + 補完",
+    title: "脚メイン + 上半身の補完",
     exercises: [
       { name: "V-スクワット",                   target: "3×10〜12", ratio: true, note: "脚の主力種目" },
       { name: "シーテッドレッグプレス",         target: "3×12〜15", ratio: true, note: "重量の刻みを確認する" },
+      { name: "アシストディップ",               target: "3×8〜12",  note: "胸・三頭。補助を徐々に減らして自重ディップへ" },
       { name: "ヒップ＆グルート",               target: "3×12〜15", note: "臀部" },
       { name: "ヒップアブダクション",           target: "2×15",     note: "中臀筋・股関節の安定性" },
       { name: "アイソラテラルハイロー",         target: "3×10〜12", note: "背中の上部" },
-      { name: "ラットレイズ",                   target: "2×12〜15", note: "三角筋中部" },
-      { name: "トーソローテーション",           target: "2×15",     note: "腹斜筋・体幹の回旋" }
+      { name: "ラットレイズ",                   target: "2×12〜15", note: "三角筋中部" }
     ]
   }
 };
@@ -729,6 +730,21 @@ const ART = {
     '<circle class="p" cx="58" cy="40" r="5"/>' +
     '<path class="p" d="M58 46v28M58 74l16 4M57 52L45 34"/>' +
     '<path class="m" d="M36 30h14M43 24v12"/>',
+
+  "チェストプレス":
+    '<path class="s" d="M30 20v70M16 90h62"/>' +
+    '<path class="s" d="M54 44v34M54 78h22M76 78v10"/>' +
+    '<circle class="p" cx="60" cy="36" r="5"/>' +
+    '<path class="p" d="M60 42v32M60 74l16 4M59 52L46 52"/>' +
+    '<path class="m" d="M40 42v20M30 52h16"/>',
+
+  "アシストディップ":
+    '<path class="s" d="M22 14v76M12 90h58"/>' +
+    '<path class="m" d="M8 40h14v30H8zM8 50h14M8 60h14"/>' +
+    '<path class="m" d="M40 46h24"/>' +
+    '<circle class="p" cx="52" cy="14" r="5"/>' +
+    '<path class="p" d="M52 20v30M52 28l6 8l-6 10M52 50l10 10l-6 11"/>' +
+    '<path class="m" d="M52 66h26"/>',
 
   "ペクトラルフライ":
     '<path class="s" d="M30 18v72M16 90h60"/>' +
@@ -1475,9 +1491,44 @@ function formatElapsed(iso) {
   return h + "時間" + (min % 60 ? (min % 60) + "分" : "") + "前";
 }
 
+// メニューを変更したあとでも、過去の記録を編集して保存したときに種目が消えないようにする。
+// 記録にあって今のメニューに無い種目は、末尾に足した版のメニューを返す
+function menuWithExtras(menu, log) {
+  if (!log) return menu;
+  const extras = log.exercises
+    .filter(ex => !menu.exercises.some(d => d.name === ex.name))
+    .map(ex => ({
+      name: ex.name,
+      target: ex.sets.length + "×" + Math.max(...ex.sets.map(x => x.reps)),
+      note: "今のメニューにない種目（過去の記録）"
+    }));
+  return extras.length ? { ...menu, exercises: menu.exercises.concat(extras) } : menu;
+}
+
+// 前回と同じ重量を初期値に入れた、まだ回数が空の種目（毎回打ち直さなくて済む）
+function newExercise(def) {
+  const last = findLastRecord(def.name);
+  const prefill = last ? last.sets[0].weight : "";
+  return {
+    name: def.name,
+    sets: Array.from({ length: parseTarget(def.target).sets }, () => ({ weight: prefill, reps: "" }))
+  };
+}
+
+// 保存前の下書きが、メニュー変更前の種目構成のままになっていたら、今のメニューに合わせて並べ直す
+function reconcileDraft(d) {
+  const menu = menuWithExtras(MENUS[d.menu], d.editingId ? findLogById(d.editingId) : null);
+  const aligned = d.exercises.length === menu.exercises.length &&
+                  d.exercises.every((e, i) => e.name === menu.exercises[i].name);
+  if (!aligned) {
+    d.exercises = menu.exercises.map(def => d.exercises.find(e => e.name === def.name) || newExercise(def));
+  }
+  return d;
+}
+
 function renderWorkout(menuId, editLog) {
   const menu = MENUS[menuId];
-  currentMenu = menu;
+  currentMenu = menuWithExtras(menu, editLog);
 
   // 入力途中で画面を離れても消えないよう、同じ編集対象なら下書きを引き継ぐ
   const hasInput = draftHasInput(draft);
@@ -1515,7 +1566,7 @@ function renderWorkout(menuId, editLog) {
     menu: menuId,
     memo: editLog ? (editLog.memo || "") : "",
     editingId: editLog ? editLog.id : null,
-    exercises: menu.exercises.map(def => {
+    exercises: currentMenu.exercises.map(def => {
       // 編集中の記録にその種目があれば、実際の値をそのまま使う
       const fromLog = editLog && editLog.exercises.find(ex => ex.name === def.name);
       if (fromLog) {
@@ -1527,14 +1578,7 @@ function renderWorkout(menuId, editLog) {
           }))
         };
       }
-      const last = findLastRecord(def.name);
-      const setCount = parseTarget(def.target).sets;
-      // 前回と同じ重量を初期値に入れておく（毎回打ち直さなくて済む）
-      const prefill = last ? last.sets[0].weight : "";
-      return {
-        name: def.name,
-        sets: Array.from({ length: setCount }, () => ({ weight: prefill, reps: "" }))
-      };
+      return newExercise(def);
     })
   };
 
@@ -2197,7 +2241,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-08.1";
+const APP_VERSION = "2026-10-08.2";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
@@ -2281,7 +2325,7 @@ applyTheme(loadTheme());
 
 // 入力途中で完全終了しても、次に開いたときに続きから入力できるようにする
 const restoredWip = loadPersistedDraft();
-if (restoredWip) draft = restoredWip.draft;
+if (restoredWip) draft = reconcileDraft(restoredWip.draft);
 
 history.replaceState({ s: "home" }, "");
 renderHome();
