@@ -277,6 +277,26 @@ button.danger:hover { background: var(--crit-wash); }
   border-radius: var(--r-sm); padding: var(--s2); margin-top: var(--s2);
 }
 
+/* ---------- 入力済みの種目を1行に畳む ---------- */
+#exerciseList .card { scroll-margin-top: calc(60px + env(safe-area-inset-top)); }
+.ex-chev { display: none; color: var(--ink-3); margin-left: auto; align-items: center; }
+.ex-summary { display: none; font-size: var(--t-sm); color: var(--ink-2);
+              font-variant-numeric: tabular-nums; margin-top: 2px; }
+.next-row { margin-top: var(--s3); }
+.next-row button {
+  width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--s2); color: var(--good); background: var(--good-wash);
+  border-color: transparent; box-shadow: none; font-weight: 600;
+}
+.card.collapsed .sets-box, .card.collapsed .est, .card.collapsed .hint,
+.card.collapsed .next-row, .card.collapsed .prev, .card.collapsed .ex-head .target { display: none; }
+.card.collapsed .ex-top { margin-bottom: 0; align-items: center; }
+.card.collapsed .illust { width: 44px; height: 44px; }
+.card.collapsed .ex-summary { display: block; }
+.card.collapsed .ex-chev { display: inline-flex; }
+.card.collapsed .ex-info { cursor: pointer; }
+.card.collapsed .ex-head b { font-size: var(--t-sm); }
+
 /* ---------- セット入力 ---------- */
 .set { display: flex; align-items: center; gap: var(--s1); margin-bottom: var(--s2); }
 .set .no {
@@ -1007,6 +1027,7 @@ const ICONS = {
   minus: '<path d="M3.2 8h9.6"/>',
   close: '<path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6"/>',
   check: '<path d="M3.2 8.4 6.3 11.5 12.8 4.9"/>',
+  chev:  '<path d="M4 6.2 8 10.2 12 6.2"/>',
   trash: '<path d="M2.8 4.4h10.4M6.4 4.4V2.8h3.2v1.6M4.4 4.4l.6 8.8h6l.6-8.8"/>',
   edit:  '<path d="M9.4 3.4 12.6 6.6 5 14.2H1.8V11z"/><path d="M8 4.8 11.2 8"/>'
 };
@@ -1379,6 +1400,7 @@ document.getElementById("importInput").onchange = event => {
 // ===== 記録画面 =======================================================
 let draft = null;      // 入力中のワークアウト
 let currentMenu = null;
+const collapsedNames = new Set();   // 入力を終えて1行に畳んだ種目
 
 // 入力中の内容をブラウザに保存しておく。アプリを閉じてしまっても消えないようにするため
 // （保存ボタンを押し忘れたまま完全終了すると、それまでの入力が消えていた問題への対応）
@@ -1444,6 +1466,7 @@ function renderWorkout(menuId, editLog) {
 
   // 除外は findLastRecord など各所から参照されるので、draft を組み立てる前に切り替える
   excludeLogId = editLog ? editLog.id : null;
+  collapsedNames.clear();
 
   draft = {
     date: editLog ? editLog.date : todayString(),
@@ -1525,15 +1548,18 @@ function drawExercises() {
     info.innerHTML =
       '<div class="ex-head"><b>' + def.name + '</b>' +
       '<span class="done" hidden>' + icon("check") + '</span>' +
-      '<span class="target">' + def.target + '</span></div>' +
+      '<span class="target">' + def.target + '</span>' +
+      '<span class="ex-chev">' + icon("chev") + '</span></div>' +
       '<div class="prev' + (last ? '' : ' none') + '">' +
       (last ? "前回 " + formatDate(last.date) + "　" + formatSets(last.sets)
             : (def.note || "初回：軽めの重量で軌道を確認")) +
-      '</div>';
+      '</div>' +
+      '<div class="ex-summary"></div>';
     top.appendChild(info);
     card.appendChild(top);
 
     const setsBox = document.createElement("div");
+    setsBox.className = "sets-box";
     card.appendChild(setsBox);
 
     const est = document.createElement("div");
@@ -1546,11 +1572,50 @@ function drawExercises() {
     hint.hidden = true;
     card.appendChild(hint);
 
+    // 全セット入力できたら出す。押すとこの種目を1行に畳んで、次の種目へスクロールする
+    const isLast = exIndex === currentMenu.exercises.length - 1;
+    const nextRow = document.createElement("div");
+    nextRow.className = "next-row";
+    nextRow.hidden = true;
+    const nextBtn = document.createElement("button");
+    nextBtn.innerHTML = icon("check") + "<span>" + (isLast ? "完了" : "完了して次の種目へ") + "</span>";
+    nextRow.appendChild(nextBtn);
+    card.appendChild(nextRow);
+
+    const summary = info.querySelector(".ex-summary");
+    function summaryText() {
+      const filled = draft.exercises[exIndex].sets
+        .filter(s => s.reps !== "" && Number(s.reps) > 0)
+        .map(s => ({ weight: s.weight === "" ? null : Number(s.weight), reps: Number(s.reps) }));
+      return filled.length ? formatSets(filled) : "";
+    }
+    function setCollapsed(on) {
+      card.classList.toggle("collapsed", on);
+      if (on) { collapsedNames.add(def.name); summary.textContent = summaryText(); }
+      else collapsedNames.delete(def.name);
+      info.setAttribute("aria-expanded", String(!on));
+    }
+    info.onclick = () => { if (card.classList.contains("collapsed")) setCollapsed(false); };
+    nextBtn.onclick = () => {
+      setCollapsed(true);
+      // 畳んで高さが変わったあとの位置へスクロールさせる
+      requestAnimationFrame(() => {
+        const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+        const cards = [...container.children];
+        const next = cards.slice(exIndex + 1).find(c => !c.classList.contains("collapsed"));
+        if (next) next.scrollIntoView({ behavior, block: "start" });
+        else window.scrollTo({ top: document.documentElement.scrollHeight, behavior });
+      });
+    };
+
     // この種目に1セットでも入力があれば「済」にする
     function updateDone() {
-      const done = draft.exercises[exIndex].sets.some(s => s.reps !== "" && Number(s.reps) > 0);
+      const sets = draft.exercises[exIndex].sets;
+      const done = sets.some(s => s.reps !== "" && Number(s.reps) > 0);
+      const all = sets.length > 0 && sets.every(s => s.reps !== "" && Number(s.reps) > 0);
       card.classList.toggle("finished", done);
       card.querySelector(".done").hidden = !done;
+      nextRow.hidden = !all;
     }
 
     // 入力中の内容から推定1RMを出し、自己ベストと比べる
@@ -1672,7 +1737,7 @@ function drawExercises() {
               !confirm((setIndex + 1) + "セット目（" +
                        (set.weight || 0) + "kg × " + set.reps + "回）を削除しますか？")) return;
           draft.exercises[exIndex].sets.splice(setIndex, 1);
-          drawSets(); updateHint(); updateEstimate(); updateProgress();
+          drawSets(); updateHint(); updateEstimate(); updateDone(); updateProgress();
         };
         row.appendChild(del);
 
@@ -1691,7 +1756,7 @@ function drawExercises() {
         const sets = draft.exercises[exIndex].sets;
         const lastSet = sets[sets.length - 1];
         sets.push({ weight: lastSet ? lastSet.weight : "", reps: "" });
-        drawSets(); updateHint(); updateProgress();
+        drawSets(); updateHint(); updateDone(); updateProgress();
       };
       footer.appendChild(add);
 
@@ -1708,6 +1773,8 @@ function drawExercises() {
     drawSets();
     updateEstimate();
     updateDone();
+    if (collapsedNames.has(def.name) && !nextRow.hidden) setCollapsed(true);
+    else info.setAttribute("aria-expanded", "true");
     container.appendChild(card);
   });
 }
