@@ -693,6 +693,7 @@ const MENUS = {
       { name: "ラットプルダウン",               target: "3×10〜12", note: "MAGグリップで握り方を変えられる" },
       { name: "ローロー",                       target: "3×10〜12", note: "アイソラテラルDYローでも可。背中の厚み" },
       { name: "アシストチン",                   target: "3×6〜10",  note: "補助を徐々に減らして自重懸垂へ" },
+      { name: "リアデルトフライ",               target: "3×12〜15", note: "ペクトラルフライを逆向きに座り、胸をパッドに当てて肩の高さで外へ開く" },
       { name: "レッグカール",                   target: "3×12〜15", note: "ハムストリング" },
       { name: "MTSバイセップカール",            target: "2×12",     note: "二頭の単関節種目" },
       { name: "バックエクステンション",         target: "2×15",     note: "自重なら重量は空欄でOK" }
@@ -745,6 +746,12 @@ const ART = {
     '<circle class="p" cx="52" cy="14" r="5"/>' +
     '<path class="p" d="M52 20v30M52 28l6 8l-6 10M52 50l10 10l-6 11"/>' +
     '<path class="m" d="M52 66h26"/>',
+
+  "リアデルトフライ":
+    '<path class="s" d="M42 46h16v26H42zM50 72v16M36 90h28"/>' +
+    '<circle class="p" cx="50" cy="30" r="5"/>' +
+    '<path class="p" d="M50 36v10M50 40H28M50 40h22"/>' +
+    '<path class="m" d="M26 32v16M72 32v16M46 44h8"/>',
 
   "ペクトラルフライ":
     '<path class="s" d="M30 18v72M16 90h60"/>' +
@@ -2241,7 +2248,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-08.2";
+const APP_VERSION = "2026-10-08.3";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
