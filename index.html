@@ -375,6 +375,24 @@ textarea { resize: vertical; min-height: 64px; }
 }
 .save-bar button { width: 100%; padding: var(--s3); font-size: var(--t-md); font-weight: 600; }
 
+/* ---------- 推定1RMの推移グラフ ---------- */
+.trend { margin: var(--s2) 0 var(--s3); }
+.trend-sum { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap;
+             font-size: var(--t-xs); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.trend-sum b { font-size: var(--t-sm); color: var(--ink); font-weight: 600; }
+.trend-sum .up { color: var(--good); font-weight: 600; margin-left: auto; }
+.trend svg { display: block; width: 100%; height: auto; overflow: visible; margin-top: var(--s1); }
+.t-grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 3; }
+.t-base { stroke: var(--line-strong); stroke-width: 1; }
+.t-area { fill: var(--accent-wash); stroke: none; }
+.t-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.t-dot { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; }
+.t-dot.last { fill: var(--accent); }
+.t-tick { fill: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+.t-val { fill: var(--ink-2); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.t-val.last { fill: var(--ink); font-weight: 700; }
+.t-val.best { fill: var(--good); font-weight: 700; }
+
 /* ---------- 履歴の絞り込みと月の区切り ---------- */
 .hist-filter { margin: 0 0 var(--s3); }
 .hist-filter .seg button { min-height: 36px; min-width: 56px; }
@@ -1901,6 +1919,64 @@ function drawModal() {
 
 const MAX_HISTORY_ROWS = 30;
 
+// 推定1RMの推移（折れ線）。古い順に並べ、日付の間隔をそのまま横軸に反映する
+function trendHTML(rows) {
+  const pts = rows.filter(r => r.est !== null).slice(0, MAX_HISTORY_ROWS).reverse()
+    .map(r => ({ v: r.est, t: new Date(r.date + "T00:00:00").getTime(), date: r.date }));
+  if (pts.length < 2) return "";
+
+  const W = 320, H = 112, L = 10, R = 310, TOP = 22, BOT = 84;
+  const vs = pts.map(p => p.v);
+  const lo0 = Math.min(...vs), hi0 = Math.max(...vs);
+  const pad = Math.max((hi0 - lo0) * 0.18, 1);
+  const lo = lo0 - pad, hi = hi0 + pad;
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  const x = (p, i) => t1 === t0 ? L + (R - L) * i / (pts.length - 1) : L + (R - L) * (p.t - t0) / (t1 - t0);
+  const y = v => BOT - (v - lo) / (hi - lo) * (BOT - TOP);
+  const xy = pts.map((p, i) => [x(p, i), y(p.v)]);
+
+  const line = xy.map((c, i) => (i ? "L" : "M") + c[0].toFixed(1) + " " + c[1].toFixed(1)).join(" ");
+  const area = line + " L" + xy[xy.length - 1][0].toFixed(1) + " " + BOT + " L" + xy[0][0].toFixed(1) + " " + BOT + " Z";
+  const md = d => { const [, m, dd] = d.split("-"); return Number(m) + "/" + Number(dd); };
+  const fmt = v => (Math.round(v * 10) / 10) + "kg";
+  const lastI = pts.length - 1;
+  const maxI = vs.indexOf(hi0);
+
+  // 値のラベル：最初・最後・最大（最大が最後と同じなら重ねない）
+  const label = (i, cls) => {
+    const [cx, cy] = xy[i];
+    const anchor = i === 0 ? "start" : i === lastI ? "end" : "middle";
+    // 端の点は、隣の点が上にあるときは線とぶつからないよう下に、そうでなければ上に置く
+    const nb = i === 0 ? xy[1] : i === lastI ? xy[lastI - 1] : null;
+    const below = nb ? nb[1] < cy - 2 : false;
+    const ty = below ? cy + 17 : (cy - 8 < 12 ? cy + 17 : cy - 8);
+    return '<text class="t-val ' + (cls || "") + '" x="' + cx.toFixed(1) + '" y="' + ty.toFixed(1) +
+           '" text-anchor="' + anchor + '">' + fmt(pts[i].v) + '</text>';
+  };
+  let labels = label(0) + label(lastI, "last");
+  if (maxI !== 0 && maxI !== lastI) labels += label(maxI, "best");
+
+  const dots = xy.map((c, i) =>
+    '<circle class="t-dot' + (i === lastI ? " last" : "") + '" cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) +
+    '" r="' + (i === lastI ? 4 : 3) + '"/>').join("");
+
+  const delta = pts[lastI].v - pts[0].v;
+  const pct = pts[0].v ? Math.round(delta / pts[0].v * 1000) / 10 : 0;
+  const sign = delta > 0 ? "+" : "";
+  const summary =
+    '<div class="trend-sum"><span>推定1RM</span><b>' + fmt(pts[0].v) + ' → ' + fmt(pts[lastI].v) + '</b>' +
+    '<span class="' + (delta > 0 ? "up" : "") + '">' + sign + (Math.round(delta * 10) / 10) + 'kg（' + sign + pct + '%）</span></div>';
+
+  return '<div class="trend">' + summary +
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="推定1RMの推移 ' + fmt(pts[0].v) + 'から' + fmt(pts[lastI].v) + '">' +
+    '<line class="t-grid" x1="' + L + '" x2="' + R + '" y1="' + TOP + '" y2="' + TOP + '"/>' +
+    '<line class="t-base" x1="' + L + '" x2="' + R + '" y1="' + BOT + '" y2="' + BOT + '"/>' +
+    '<path class="t-area" d="' + area + '"/><path class="t-line" d="' + line + '"/>' + dots + labels +
+    '<text class="t-tick" x="' + L + '" y="104" text-anchor="start">' + md(pts[0].date) + '</text>' +
+    '<text class="t-tick" x="' + R + '" y="104" text-anchor="end">' + md(pts[lastI].date) + '</text>' +
+    '</svg></div>';
+}
+
 function drawModalHistory() {
   const box = document.getElementById("modalHistory");
   const rows = exerciseHistory(modalExercise.name);
@@ -1920,6 +1996,9 @@ function drawModalHistory() {
   }
 
   const bestValue = Math.max(...rows.map(r => r.est || 0));
+
+  const chart = trendHTML(rows);
+  if (chart) box.insertAdjacentHTML("beforeend", chart);
 
   rows.slice(0, MAX_HISTORY_ROWS).forEach(row => {
     const isBest = row.est !== null && row.est === bestValue;
@@ -2118,7 +2197,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-09-23.1";
+const APP_VERSION = "2026-10-08.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
