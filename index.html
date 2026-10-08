@@ -48,7 +48,7 @@
   /* 文字 */
   --ink: #101119;
   --ink-2: #55566b;
-  --ink-3: #8b8c9e;
+  --ink-3: #737487;
 
   /* 意味の色 */
   --accent: #5B5BD6;
@@ -144,6 +144,7 @@ body {
   margin-left: var(--s2); font-variant-numeric: tabular-nums;
 }
 .tb-btn {
+  min-height: 44px; min-width: 44px; justify-content: center;
   display: inline-flex; align-items: center; gap: var(--s1);
   border: 0; background: none; box-shadow: none; color: var(--ink-2);
   padding: var(--s2); border-radius: var(--r-sm);
@@ -232,7 +233,7 @@ button.danger:hover { background: var(--crit-wash); }
 }
 .date-row label { flex: none; white-space: nowrap; }
 .date-row input[type="date"] {
-  width: auto; padding: 5px var(--s2); font-size: var(--t-sm);
+  width: auto; min-height: 44px; padding: 5px var(--s2); font-size: var(--t-sm);
 }
 
 /* ---------- 種目カード ---------- */
@@ -256,12 +257,12 @@ button.danger:hover { background: var(--crit-wash); }
 .ex-head b { font-size: var(--t-md); font-weight: 600; letter-spacing: -0.015em; }
 .ex-head .done { color: var(--good); flex: none; display: inline-flex; }
 .ex-head .target {
-  font-size: var(--t-xs); color: var(--ink-3); margin-left: auto;
+  font-size: var(--t-xs); color: var(--ink-2); margin-left: auto;
   white-space: nowrap; font-variant-numeric: tabular-nums;
 }
-.prev { font-size: var(--t-xs); color: var(--ink-3); margin-top: var(--s1);
+.prev { font-size: var(--t-sm); color: var(--ink-2); margin-top: var(--s1);
         font-variant-numeric: tabular-nums; }
-.prev.none { color: var(--ink-3); }
+.prev.none { color: var(--ink-3); font-size: var(--t-xs); }
 .card.finished { border-color: color-mix(in srgb, var(--good) 34%, transparent); }
 
 .est {
@@ -284,7 +285,7 @@ button.danger:hover { background: var(--crit-wash); }
 }
 .set input {
   font: inherit; font-size: var(--t-md); width: 100%; min-width: 0;
-  padding: 8px var(--s2); text-align: right;
+  min-height: 44px; padding: 8px var(--s2); text-align: right;
   border: 1px solid var(--line-strong); border-radius: var(--r-sm);
   background: var(--panel); color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -298,20 +299,22 @@ button.danger:hover { background: var(--crit-wash); }
 .set .w { flex: 1.3; }
 .set .r { flex: 1; }
 .set .step-btn {
-  flex: none; width: 40px; padding: 10px 0; color: var(--ink-3);
+  flex: none; width: 44px; height: 44px; margin: 0 -2px; padding: 0; color: var(--ink-3);
   border: 0; background: none; box-shadow: none;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .set .step-btn:hover { background: var(--hover); color: var(--ink); }
 .set .del {
-  flex: none; padding: var(--s2) 6px; color: var(--ink-3);
+  flex: none; width: 44px; height: 44px; margin: 0 -8px; padding: 0; color: var(--ink-3);
   border: 0; background: none; box-shadow: none;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .set .del:hover { color: var(--crit); background: var(--crit-wash); }
 .set-foot { display: flex; align-items: center; gap: var(--s2); }
+.set-foot button { min-height: 44px; }
 .step-pick {
-  font-size: var(--t-xs); color: var(--ink-3); margin-left: auto;
-  border: 0; background: none; box-shadow: none; padding: var(--s1) var(--s2);
+  font-size: var(--t-sm); color: var(--ink-3); margin-left: auto;
+  border: 0; background: none; box-shadow: none; padding: var(--s1) var(--s3);
 }
 .step-pick:hover { color: var(--ink); background: var(--hover); }
 
@@ -367,7 +370,8 @@ textarea { resize: vertical; min-height: 64px; }
 .log-body button:hover { color: var(--accent); background: none; }
 .log-del {
   flex: none; border: 0; background: none; box-shadow: none;
-  color: var(--ink-3); padding: var(--s1); margin-left: var(--s2);
+  color: var(--ink-3); padding: 14px 10px; margin: -14px -2px -14px -6px;
+  display: inline-flex; align-items: center;
 }
 .log-del:hover { color: var(--ink); background: var(--hover); }
 .log-del.log-trash:hover { color: var(--crit); background: var(--crit-wash); }
