@@ -375,6 +375,18 @@ textarea { resize: vertical; min-height: 64px; }
 }
 .save-bar button { width: 100%; padding: var(--s3); font-size: var(--t-md); font-weight: 600; }
 
+/* ---------- 履歴の絞り込みと月の区切り ---------- */
+.hist-filter { margin: 0 0 var(--s3); }
+.hist-filter .seg button { min-height: 36px; min-width: 56px; }
+.month-head {
+  display: flex; align-items: baseline; gap: var(--s2);
+  position: sticky; top: calc(52px + env(safe-area-inset-top)); z-index: 5;
+  background: var(--bg); padding: var(--s3) var(--s1) var(--s2);
+}
+.month-head b { font-size: var(--t-sm); font-weight: 600; letter-spacing: -0.01em; }
+.month-head span { font-size: var(--t-xs); color: var(--ink-3); margin-left: auto;
+                   font-variant-numeric: tabular-nums; }
+
 /* ---------- 履歴 ---------- */
 .log-head { display: flex; align-items: baseline; gap: var(--s2); }
 .log-head b { font-size: var(--t-md); font-weight: 600; letter-spacing: -0.015em; }
@@ -386,6 +398,10 @@ textarea { resize: vertical; min-height: 64px; }
 .log-body button {
   font-size: var(--t-sm); font-weight: 500; color: var(--ink-2);
   border: 0; background: none; box-shadow: none; padding: 0;
+}
+.log-body button {
+  text-decoration: underline dotted; text-decoration-color: var(--ink-3);
+  text-underline-offset: 4px; text-decoration-thickness: 1px;
 }
 .log-body button:hover { color: var(--accent); background: none; }
 .log-del {
@@ -597,8 +613,16 @@ textarea { resize: vertical; min-height: 64px; }
 
   <!-- 履歴画面 -->
   <section id="historyScreen" hidden>
-    <p class="muted" id="historyHint" style="margin:0 var(--s1) var(--s3)">
-      種目名をタップすると、その種目だけの記録を見られます。
+    <div class="hist-filter" id="historyFilterRow">
+      <span class="seg" id="historyFilter">
+        <button data-hf="all">すべて</button>
+        <button data-hf="A">A</button>
+        <button data-hf="B">B</button>
+        <button data-hf="C">C</button>
+      </span>
+    </div>
+    <p class="muted" id="historyHint" style="margin:0 var(--s1) var(--s2)">
+      下線のついた種目名をタップすると、その種目だけの記録と推移を見られます。
     </p>
     <div id="logList"></div>
   </section>
@@ -1975,18 +1999,51 @@ photoDelete.onclick = () => {
 };
 
 // ===== 履歴画面 =======================================================
+let historyFilter = "all";   // "all" / "A" / "B" / "C"
+const historyFilterEl = document.getElementById("historyFilter");
+for (const btn of historyFilterEl.children) {
+  btn.onclick = () => { historyFilter = btn.dataset.hf; renderHistory(); };
+}
+
 function renderHistory() {
   excludeLogId = null;
   const container = document.getElementById("logList");
   container.innerHTML = "";
-  const logs = sortedLogs();
+  const allLogs = sortedLogs();
+  const logs = historyFilter === "all" ? allLogs : allLogs.filter(l => l.menu === historyFilter);
 
+  for (const btn of historyFilterEl.children) {
+    btn.classList.toggle("on", btn.dataset.hf === historyFilter);
+  }
+  document.getElementById("historyFilterRow").hidden = (allLogs.length === 0);
   document.getElementById("historyHint").hidden = (logs.length === 0);
   if (logs.length === 0) {
-    container.innerHTML = '<p class="empty">まだ記録がありません。</p>';
+    container.innerHTML = '<p class="empty">' +
+      (allLogs.length === 0 ? "まだ記録がありません。" : "メニュー" + historyFilter + "の記録はまだありません。") + '</p>';
   }
 
+  // 月ごとの回数と総挙上量（絞り込み後の記録で数える）
+  const monthStats = {};
+  for (const l of logs) {
+    const key = l.date.slice(0, 7);
+    const st = monthStats[key] || (monthStats[key] = { count: 0, volume: 0 });
+    st.count++; st.volume += totalVolume(l.exercises);
+  }
+
+  let currentMonth = null;
   for (const log of logs) {
+    const monthKey = log.date.slice(0, 7);
+    if (monthKey !== currentMonth) {
+      currentMonth = monthKey;
+      const [y, m] = monthKey.split("-");
+      const st = monthStats[monthKey];
+      const mh = document.createElement("div");
+      mh.className = "month-head";
+      mh.innerHTML = '<b>' + y + '年' + Number(m) + '月</b>' +
+        '<span>' + st.count + '回 · ' + st.volume.toLocaleString() + 'kg</span>';
+      container.appendChild(mh);
+    }
+
     const card = document.createElement("div");
     card.className = "card";
 
