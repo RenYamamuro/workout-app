@@ -669,6 +669,14 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
           <button data-theme-value="dark">ダーク</button>
         </span>
       </div>
+      <div class="cell">
+        <span>言語</span>
+        <span class="seg" id="langSeg" style="margin-left:auto">
+          <button data-lang-value="auto">自動</button>
+          <button data-lang-value="ja">日本語</button>
+          <button data-lang-value="en">English</button>
+        </span>
+      </div>
     </div>
 
     <div class="group-title">プロフィール</div>
@@ -727,7 +735,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
 
 <nav class="tabbar" id="tabbar" aria-label="メインメニュー">
   <div class="sb-title">LIFT LOG</div>
-  <div class="sb-sub">A・B・C の3分割</div>
+  <div class="sb-sub">PUSH・PULL・LEG の3分割</div>
   <div class="tabs">
     <button class="tab" id="homeTab" data-tab="home">
       <svg viewBox="0 0 24 24"><path d="M3.5 11.2 12 4l8.5 7.2V19a1.5 1.5 0 0 1-1.5 1.5h-4v-5.8H9v5.8H5A1.5 1.5 0 0 1 3.5 19z"/></svg>
@@ -772,6 +780,197 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
 </div>
 
 <script>
+// ===== 言語 ===========================================================
+// 日本語の文言そのものをキーにして、英語版は EN に引く（無ければ日本語のまま出す）。
+// 種目名・メニュー・筋肉名も同じ辞書で訳す。保存データには日本語の種目名が入るので、訳すのは表示するときだけ。
+const LANG_KEY = "workout-lang-v1";
+function loadLangSetting() {
+  const v = localStorage.getItem(LANG_KEY);
+  return (v === "ja" || v === "en") ? v : "auto";
+}
+function resolveLang(setting) {
+  if (setting !== "auto") return setting;
+  return /^ja\b/i.test(navigator.language || "") ? "ja" : "en";
+}
+let LANG = resolveLang(loadLangSetting());
+
+// {n} のような差し込みに対応。英語側は単数・複数を分けたいときだけ関数にする
+function t(ja, vars) {
+  let out = LANG === "en" && EN[ja] !== undefined ? EN[ja] : ja;
+  if (typeof out === "function") out = out(vars || {});
+  if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
+  return out;
+}
+const plural = (n, one, many) => n + " " + (Number(n) === 1 ? one : many);
+
+const EN = {
+  // 共通・画面
+  "戻る": "Back", "ホーム": "Home", "履歴": "History", "設定": "Settings", "閉じる": "Close",
+  "メインメニュー": "Main menu", "PUSH・PULL・LEG の3分割": "Push / Pull / Legs split",
+  "続きから入力": "Resume", "破棄": "Discard",
+  "PUSH → PULL → LEG の順に、行く日に次のメニューを実施します。": "Rotate PUSH → PULL → LEG — do the next one each time you train.",
+  "実施日": "Date", "メモ（体調・筋肉痛・気づいたことなど）": "Notes (how you felt, soreness, anything else)",
+  "例）脚に筋肉痛が残っていたので軽め": "e.g. Legs still sore, went lighter",
+  "この内容で保存": "Save workout", "この内容で更新": "Update workout",
+  "クラウド同期": "Cloud sync", "アカウント": "Account", "Googleでログイン": "Sign in with Google",
+  "今すぐ同期": "Sync now", "ログアウト": "Sign out",
+  "外観": "Appearance", "表示テーマ": "Theme", "自動": "Auto", "ライト": "Light", "ダーク": "Dark", "言語": "Language",
+  "プロフィール": "Profile", "体重": "Body weight", "推定1RMの体重比に使います。": "Used for the estimated 1RM-to-body-weight ratio.",
+  "通知": "Notifications", "保存忘れの通知": "Unsaved workout reminder",
+  "データ": "Data", "使用中の容量": "Storage used", "書き出し": "Export", "読み込み": "Import", "アプリの版": "Version",
+  "すべて": "All",
+  "日付をタップすると中身を開きます。種目名をタップすると、その種目だけの記録と推移を見られます。":
+    "Tap a date to expand it. Tap an exercise to see its history and trend.",
+  "実物の写真を登録": "Add a photo of the machine", "写真を削除": "Delete photo",
+
+  // ホーム
+  "次はこれ": "Next", "前回": "Last", "{m} を始める": "Start {m}", "{n}種目": v => plural(v.n, "exercise", "exercises"),
+  "編集の続き：": "Editing: ", "続きがあります：": "Unsaved: ",
+  "{n}種目を入力したまま、保存されていません。": v => plural(v.n, "exercise", "exercises") + " entered but not saved yet.",
+  "未保存の入力を破棄しますか？": "Discard the unsaved workout?",
+  "はじめに": "Getting started", "{m} から始めましょう": "Start with {m}",
+  "記録をつけると、前回の重量が自動で入ります": "Once you log, your last weights fill in automatically",
+  "今週の目標": "This week", "/ {n}回": "/ {n}", "達成！": "Goal reached!", "あと{n}回": "{n} to go",
+  "今日": "Today", "日前": v => (v.n === 1 ? "day ago" : "days ago"),
+  "今週の部位（セット数）": "Muscles this week (sets)", "直近2週間": "Last 2 weeks",
+  "{n}セット以上": "{n}+ sets",
+  "今週はまだ記録がありません。筋肉をタップするとセット数が出ます。": "No workouts yet this week. Tap a muscle to see its sets.",
+  "<b>{n}部位</b>が目安の{t}セットに到達。<br>筋肉をタップするとセット数が出ます。":
+    v => "<b>" + plural(v.n, "muscle", "muscles") + "</b> reached the {t}-set target.<br>Tap a muscle to see its sets.",
+  "{n}セット（目安 {a}〜{b}）": "{n} sets (target {a}–{b})", "多め": "On the high side", "十分": "On target",
+
+  // データ
+  "記録 {n}件 / マシン写真 {p}枚（このブラウザの中だけに保存されています）":
+    v => plural(v.n, "workout", "workouts") + " / " + plural(v.p, "photo", "photos") + " (stored in this browser only)",
+  "定期的に書き出してバックアップを取ってください。": "Export regularly to keep a backup.",
+  "✓ このブラウザがデータを保持する設定になっています。": "✓ This browser is set to keep your data.",
+  "※ 容量不足時にブラウザがデータを消す可能性があります。定期的に書き出してください。":
+    "※ The browser may clear data when storage runs low. Export regularly.",
+  "書き出しました": "Exported", "読み込みました": "Imported",
+  "読み込めませんでした。書き出したJSONファイルを選んでください。": "Couldn't read that file. Choose a JSON file exported from this app.",
+  "このアプリのバックアップファイルではないようです。": "This doesn't look like a backup from this app.",
+  "追加できる新しいデータはありませんでした。": "There was no new data to add.",
+  "記録 {n}件、写真 {p}枚を追加します。\n今ある記録は消えません。よろしいですか？":
+    v => "Add " + plural(v.n, "workout", "workouts") + " and " + plural(v.p, "photo", "photos") + "?\nExisting workouts are kept.",
+  "記録 {n}件 / 写真 {p}枚を追加": v => "Added " + plural(v.n, "workout", "workouts") + " / " + plural(v.p, "photo", "photos"),
+  "保存容量がいっぱいです。使っていない種目の写真を削除してください。": "Storage is full. Delete photos you no longer need.",
+
+  // 記録画面
+  "たった今": "just now", "{n}分前": "{n} min ago", "{h}時間前": "{h} h ago", "{h}時間{m}分前": "{h} h {m} min ago",
+  "入力中の内容が保存されていません。破棄してこの記録を編集しますか？": "You have an unsaved workout. Discard it and edit this one?",
+  "入力中の内容が保存されていません。破棄して別のメニューを開きますか？": "You have an unsaved workout. Discard it and open another menu?",
+  "編集：": "Edit: ", "タップで拡大 / 写真を登録": "Tap to enlarge / add a photo", "タップで拡大": "Tap to enlarge",
+  "初回：軽めの重量で軌道を確認": "First time: go light and learn the movement",
+  "完了": "Done", "完了して次の種目へ": "Done — next exercise",
+  "自己ベスト（推定1RM）": "Best (est. 1RM)", "推定1RM": "Est. 1RM", "自己ベスト": "Best",
+  "（体重比 {r}倍）": " ({r}× body weight)", "自己ベスト更新（前 {v}kg）": "New best! (was {v}kg)",
+  "※13回以上からの推定は誤差が大きめです": "※ Estimates from 13+ reps are less accurate",
+  "全セット完遂 ✓ 次回は 2.5〜5kg 上げてOK": "All sets done ✓ Add 2.5–5kg next time",
+  "重量を下げる": "Decrease weight", "重量を上げる": "Increase weight", "重量": "Weight",
+  "このセットを削除": "Delete this set", "{i}セット目（{w}kg × {r}回）を削除しますか？": "Delete set {i} ({w}kg × {r})?",
+  "セットを追加": "Add set", "刻み {s}kg": "Step {s}kg", "タップで切り替え": "Tap to change",
+  "記録するセットがありません。回数を入力してください。": "Nothing to save yet. Enter your reps first.",
+  "この記録は既に削除されているため、更新できませんでした。": "This workout was already deleted, so it couldn't be updated.",
+  "{m} を更新しました": "{m} updated", "{m} を記録しました": "{m} saved",
+  "{n}種目 / {s}セット / 総挙上量 {v}kg": v => plural(v.n, "exercise", "exercises") + " / " + plural(v.s, "set", "sets") + " / {v}kg total",
+  "自重": "BW", "（{d} {w}kg×{r}）": " ({d}, {w}kg×{r})",
+
+  // 種目の詳細
+  "ジムで実物の写真を撮って登録すると、この図の代わりに表示されます。": "Add a photo of the machine at your gym to show it here instead of the drawing.",
+  "主": "Main", "補助": "Assist", "この種目の記録": "History",
+  "まだ記録がありません。": "No workouts yet.",
+  "右端は推定1RM。★が自己ベスト。直近{n}件を表示（全{a}件）": "Right column is est. 1RM. ★ = best. Showing the latest {n} of {a}.",
+  "右端は推定1RM。★が自己ベストです。": "Right column is est. 1RM. ★ = best.",
+  "推定1RMの推移 {a}から{b}": "Est. 1RM trend from {a} to {b}",
+
+  // 履歴
+  "{m} の記録はまだありません。": "No {m} workouts yet.", "{y}年{m}月": "{mon} {y}", "{n}回": v => plural(v.n, "workout", "workouts"),
+  "（編集 {t}）": " (edited {t})", "この記録を編集": "Edit this workout", "この記録を削除": "Delete this workout",
+  "{d} の記録を削除しますか？": "Delete the workout on {d}?", "この種目の記録を見る": "See this exercise's history", "メモ：": "Notes: ",
+
+  // 保存忘れの通知
+  "保存忘れはありませんか？": "Forgot to save?", "{m} の記録が、{e}から保存されていません。": "Your {m} workout hasn't been saved since {e}.",
+  "このブラウザは通知に対応していません。": "This browser doesn't support notifications.",
+  "通知がブロックされています。ブラウザの設定から許可してください。": "Notifications are blocked. Allow them in your browser settings.",
+  "最後に入力してから1時間、保存されていなければ通知します。アプリを開いている間だけ働くので、完全に閉じた場合は気づけません。":
+    "Notifies you if a workout stays unsaved for an hour after your last entry. Only works while the app is open.",
+  "オンにすると、保存を忘れたまま1時間経ったときに通知します。": "Turn on to get a reminder when a workout stays unsaved for an hour.",
+
+  // クラウド同期（firebase-sync.js）
+  "ログインできませんでした：": "Couldn't sign in: ", "ログイン中": "Signed in", "未ログイン": "Not signed in",
+  "記録を保存するたびに、自動でクラウドへ反映されます。": "Every workout you save is synced to the cloud automatically.",
+  "Googleでログインすると、どの端末・ブラウザからでも同じ記録を見られます。": "Sign in with Google to see the same workouts on any device or browser.",
+  "同期中…": "Syncing…", "✓ {t} 同期": "✓ Synced {t}", "同期エラー": "Sync error", "同期できませんでした：": "Couldn't sync: ",
+
+  // メニュー
+  "プッシュ（胸・肩・三頭）+ 脚前面": "Push (chest, shoulders, triceps) + front of legs",
+  "プル（背中・二頭）+ 脚後面": "Pull (back, biceps) + back of legs",
+  "脚メイン + 上半身の補完": "Legs + upper-body accessories",
+
+  // 種目名
+  "スミスマシンベンチプレス": "Smith Machine Bench Press", "アイソラテラルショルダープレス": "Iso-Lateral Shoulder Press",
+  "チェストプレス": "Chest Press", "ペクトラルフライ": "Pec Fly", "レッグエクステンション": "Leg Extension",
+  "ケーブルプレスダウン": "Cable Pressdown", "アブドミナルクランチ": "Abdominal Crunch",
+  "ラットプルダウン": "Lat Pulldown", "ローロー": "Low Row", "アシストチン": "Assisted Chin-Up",
+  "リアデルトフライ": "Rear Delt Fly", "レッグカール": "Leg Curl", "MTSバイセップカール": "MTS Biceps Curl",
+  "バックエクステンション": "Back Extension", "V-スクワット": "V-Squat", "シーテッドレッグプレス": "Seated Leg Press",
+  "アシストディップ": "Assisted Dip", "ヒップ＆グルート": "Hip & Glute", "ヒップアブダクション": "Hip Abduction",
+  "アイソラテラルハイロー": "Iso-Lateral High Row", "ラットレイズ": "Lateral Raise", "トーソローテーション": "Torso Rotation",
+
+  // 種目の注記
+  "フリーウェイトと重量が違うので「スミス」と分けて記録する": "Log separately from the free-weight bench — the loads differ",
+  "左右独立。左右差の修正に有利": "Independent arms — good for fixing left/right imbalances",
+  "座って押すマシン。軌道が安定。初回は軽めで確認": "Seated press on a fixed path. Go light the first time",
+  "胸の単関節種目。初回は軽めで軌道確認": "Chest isolation. Go light the first time to learn the path",
+  "三頭の単関節種目": "Triceps isolation", "体幹は最後に": "Do core last",
+  "MAGグリップで握り方を変えられる": "Swap grips with the MAG attachments",
+  "アイソラテラルDYローでも可。背中の厚み": "Iso-Lateral DY Row also works. Builds back thickness",
+  "補助を徐々に減らして自重懸垂へ": "Reduce the assist over time toward bodyweight chin-ups",
+  "ペクトラルフライを逆向きに座り、胸をパッドに当てて肩の高さで外へ開く":
+    "Sit backwards on the pec fly, chest against the pad, and open your arms at shoulder height",
+  "ハムストリング": "Hamstrings", "二頭の単関節種目": "Biceps isolation", "自重なら重量は空欄でOK": "Leave weight blank for bodyweight",
+  "脚の主力種目": "Main leg lift", "重量の刻みを確認する": "Check the weight increments",
+  "胸・三頭。補助を徐々に減らして自重ディップへ": "Chest & triceps. Reduce the assist toward bodyweight dips",
+  "臀部": "Glutes", "中臀筋・股関節の安定性": "Glute medius & hip stability", "背中の上部": "Upper back", "三角筋中部": "Side delts",
+  "今のメニューにない種目（過去の記録）": "Not in the current menu (from a past workout)",
+
+  // 筋肉名
+  "大胸筋": "Chest", "三角筋（前）": "Front delts", "三角筋（横）": "Side delts", "三角筋（後）": "Rear delts",
+  "上腕二頭筋": "Biceps", "上腕三頭筋": "Triceps", "前腕": "Forearms", "腹直筋": "Abs", "腹斜筋": "Obliques",
+  "大腿四頭筋": "Quadriceps", "内転筋": "Adductors", "下腿": "Calves", "僧帽筋": "Traps", "広背筋": "Lats",
+  "脊柱起立筋": "Lower back", "大臀筋": "Glutes", "ハムストリングス": "Hamstrings",
+  "僧帽筋中部・菱形筋": "Mid traps & rhomboids", "中臀筋": "Glute medius"
+};
+const exName = name => t(name);
+
+// 画面に最初から書いてある文言（HTML）を訳す。元の日本語は覚えておき、日本語に戻すときに使う
+function translateStatic() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.parentElement && n.parentElement.closest("script, style")) continue;
+    if (n.__ja === undefined) {
+      const key = n.nodeValue.trim();
+      if (!key || EN[key] === undefined) continue;
+      n.__ja = n.nodeValue;
+    }
+    const key = n.__ja.trim();
+    n.nodeValue = n.__ja.replace(key, t(key));
+  }
+  for (const el of document.querySelectorAll("[aria-label], [placeholder], [title]")) {
+    for (const attr of ["aria-label", "placeholder", "title"]) {
+      if (!el.hasAttribute(attr)) continue;
+      const store = "__ja_" + attr;
+      if (el[store] === undefined) {
+        const v = el.getAttribute(attr);
+        if (EN[v] === undefined) continue;
+        el[store] = v;
+      }
+      el.setAttribute(attr, t(el[store]));
+    }
+  }
+  document.documentElement.lang = LANG;
+}
+
 // ===== 種目マスタ =====================================================
 // target: "セット数×レップ数"。セット数の初期値と、増量判断の目安に使う。
 // id（A/B/C）は保存データのキーなので変えない。画面に出す名前は name、1文字の印は mark
@@ -817,6 +1016,7 @@ const MENUS = {
   }
 };
 function menuName(id) { return MENUS[id] ? MENUS[id].name : "メニュー" + id; }
+function menuTitle(id) { return t(MENUS[id].title); }
 function menuMark(id) { return MENUS[id] ? MENUS[id].mark : id; }
 const MENU_ORDER = ["A", "B", "C"];
 const CHEVRON = '<svg class="chev" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -1049,7 +1249,7 @@ function savePhotos(photos) {
     if (window.cloudSync) window.cloudSync();
     return true;
   } catch (e) {
-    alert("保存容量がいっぱいです。使っていない種目の写真を削除してください。");
+    alert(t("保存容量がいっぱいです。使っていない種目の写真を削除してください。"));
     return false;
   }
 }
@@ -1261,8 +1461,9 @@ function todayString() {
 }
 function formatDate(iso) {
   const [y, m, d] = iso.split("-");
-  const week = "日月火水木金土"[new Date(iso + "T00:00:00").getDay()];
-  return Number(m) + "/" + Number(d) + "（" + week + "）";
+  const day = new Date(iso + "T00:00:00").getDay();
+  if (LANG === "en") return "SunMonTueWedThuFriSat".substr(day * 3, 3) + " " + Number(m) + "/" + Number(d);
+  return Number(m) + "/" + Number(d) + "（" + "日月火水木金土"[day] + "）";
 }
 // 保存した時刻（savedAt の ISO文字列）を "19:32" の形にする。
 // 古い記録には savedAt が無いので、その場合は空文字を返す
@@ -1277,10 +1478,10 @@ function formatTime(savedAt) {
 function formatSets(sets) {
   const weights = [...new Set(sets.map(s => s.weight))];
   if (weights.length === 1) {
-    const w = weights[0] === null ? "自重" : weights[0] + "kg";
+    const w = weights[0] === null ? t("自重") : weights[0] + "kg";
     return w + " × " + sets.map(s => s.reps).join(",");
   }
-  return sets.map(s => (s.weight === null ? "自重" : s.weight + "kg") + "×" + s.reps).join(", ");
+  return sets.map(s => (s.weight === null ? t("自重") : s.weight + "kg") + "×" + s.reps).join(", ");
 }
 function totalVolume(exercises) {
   let v = 0;
@@ -1423,7 +1624,7 @@ function renderSettings() {
   excludeLogId = null;
   updateDataCard();
   goTo({ s: "settings" });
-  showScreen("settings", "設定");
+  showScreen("settings", t("設定"));
 }
 
 // ===== ホーム画面 =====================================================
@@ -1452,14 +1653,14 @@ function renderHome() {
     const menu = MENUS[id];
     const last = lastDoneOf(id);
     const right = id === next
-      ? '<span class="next-tag">次はこれ</span>'
-      : (last ? '<span class="last">前回 ' + formatDate(last) + '</span>' : "");
+      ? '<span class="next-tag">' + t("次はこれ") + '</span>'
+      : (last ? '<span class="last">' + t("前回") + ' ' + formatDate(last) + '</span>' : "");
     const btn = document.createElement("button");
     btn.className = "menu-btn";
     btn.innerHTML =
       '<span class="badge">' + menuMark(id) + '</span>' +
       '<span class="t"><span class="line"><b>' + menuName(id) + '</b>' + right + '</span>' +
-      '<span class="sub">' + menu.title + '</span></span>' + CHEVRON;
+      '<span class="sub">' + menuTitle(id) + '</span></span>' + CHEVRON;
     btn.onclick = () => renderWorkout(id);
     list.appendChild(btn);
   }
@@ -1469,8 +1670,8 @@ function renderHome() {
   // 次にやるメニューを、いちばん押しやすい大きなボタンで出す（続きの入力があるときはそちらを優先）
   const start = document.getElementById("startNext");
   start.hidden = draftHasInput(draft);
-  start.innerHTML = '<b>' + menuName(next) + ' を始める</b>' +
-    '<span>' + MENUS[next].title + ' · ' + MENUS[next].exercises.length + '種目</span>';
+  start.innerHTML = '<b>' + t("{m} を始める", { m: menuName(next) }) + '</b>' +
+    '<span>' + menuTitle(next) + ' · ' + t("{n}種目", { n: MENUS[next].exercises.length }) + '</span>';
   start.onclick = () => renderWorkout(next);
 
   goTo({ s: "home" });
@@ -1487,9 +1688,9 @@ function drawResumeCard() {
     ex => ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0)
   ).length;
   document.getElementById("resumeTitle").textContent =
-    (draft.editingId ? "編集の続き：" : "続きがあります：") + menuName(draft.menu);
+    t(draft.editingId ? "編集の続き：" : "続きがあります：") + menuName(draft.menu);
   document.getElementById("resumeNote").textContent =
-    doneCount + "種目を入力したまま、保存されていません。";
+    t("{n}種目を入力したまま、保存されていません。", { n: doneCount });
   const wip = loadPersistedDraft();
   document.getElementById("resumeAge").textContent = wip ? formatElapsed(wip.updatedAt) : "";
 }
@@ -1499,7 +1700,7 @@ document.getElementById("resumeBtn").onclick = () => {
   else renderWorkout(draft.menu);
 };
 document.getElementById("resumeDiscard").onclick = () => {
-  if (!confirm("未保存の入力を破棄しますか？")) return;
+  if (!confirm(t("未保存の入力を破棄しますか？"))) return;
   draft = null;
   excludeLogId = null;
   clearPersistedDraft();
@@ -1511,9 +1712,9 @@ function drawSummaryTiles(logs) {
   if (logs.length === 0) {
     box.innerHTML =
       '<div class="tile" style="grid-column:1/-1">' +
-      '<div class="label">はじめに</div>' +
-      '<div class="value" style="font-size:var(--t-md)">' + menuName("A") + ' から始めましょう</div>' +
-      '<div class="foot">記録をつけると、前回の重量が自動で入ります</div></div>';
+      '<div class="label">' + t("はじめに") + '</div>' +
+      '<div class="value" style="font-size:var(--t-md)">' + t("{m} から始めましょう", { m: menuName("A") }) + '</div>' +
+      '<div class="foot">' + t("記録をつけると、前回の重量が自動で入ります") + '</div></div>';
     return;
   }
 
@@ -1530,26 +1731,26 @@ function drawSummaryTiles(logs) {
 
   box.innerHTML =
     '<div class="tile">' +
-      '<div class="label">今週の目標</div>' +
+      '<div class="label">' + t("今週の目標") + '</div>' +
       '<div class="goal' + (done >= WEEKLY_GOAL ? " done" : "") + '">' +
         '<svg viewBox="0 0 48 48" aria-hidden="true"><circle class="track" cx="24" cy="24" r="20"/>' +
         '<circle class="bar" cx="24" cy="24" r="20" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' +
           (C * (1 - ratio)).toFixed(1) + '"' + (done ? "" : ' style="opacity:0"') + '/></svg>' +
-        '<div><div class="value" style="margin:0">' + done + '<small>/ ' + WEEKLY_GOAL + '回</small></div>' +
-        '<div class="foot">' + (done >= WEEKLY_GOAL ? "達成！" : "あと" + (WEEKLY_GOAL - done) + "回") + '</div></div>' +
+        '<div><div class="value" style="margin:0">' + done + '<small>' + t("/ {n}回", { n: WEEKLY_GOAL }) + '</small></div>' +
+        '<div class="foot">' + (done >= WEEKLY_GOAL ? t("達成！") : t("あと{n}回", { n: WEEKLY_GOAL - done })) + '</div></div>' +
       '</div>' +
     '</div>' +
     '<div class="tile">' +
-      '<div class="label">前回</div>' +
-      '<div class="value">' + (daysAgo === 0 ? "今日" : daysAgo + '<small>日前</small>') + '</div>' +
+      '<div class="label">' + t("前回") + '</div>' +
+      '<div class="value">' + (daysAgo === 0 ? t("今日") : daysAgo + '<small>' + t("日前", { n: daysAgo }) + '</small>') + '</div>' +
       '<div class="foot">' + formatDate(last.date) + ' ' + menuName(last.menu) + '</div>' +
     '</div>' +
     '<div class="tile" style="grid-column:1/-1">' +
-      '<div class="label">今週の部位（セット数）</div>' +
+      '<div class="label">' + t("今週の部位（セット数）") + '</div>' +
       weekMapHTML(thisWeek) +
     '</div>' +
     '<div class="tile" style="grid-column:1/-1">' +
-      '<div class="label">直近2週間</div>' +
+      '<div class="label">' + t("直近2週間") + '</div>' +
       '<div class="week-strip">' + stripHTML(logs) + '</div>' +
     '</div>';
   bindWeekMap(box, thisWeek);
@@ -1595,13 +1796,13 @@ function weekMapHTML(weekLogs) {
     '<div class="heat-legend">0' +
       '<i style="background:var(--m0-a)"></i><i style="background:var(--m2-b)"></i>' +
       '<i style="background:var(--m3-b)"></i><i style="background:var(--m1-b)"></i>' +
-      SET_TARGET[0] + 'セット以上</div>';
+      t("{n}セット以上", { n: SET_TARGET[0] }) + '</div>';
 }
 function weekMapSummary(sets) {
   const keys = Object.keys(sets);
-  if (keys.length === 0) return "今週はまだ記録がありません。筋肉をタップするとセット数が出ます。";
+  if (keys.length === 0) return t("今週はまだ記録がありません。筋肉をタップするとセット数が出ます。");
   const reached = keys.filter(k => sets[k] >= SET_TARGET[0]).length;
-  return '<b>' + reached + '部位</b>が目安の' + SET_TARGET[0] + 'セットに到達。<br>筋肉をタップするとセット数が出ます。';
+  return t("<b>{n}部位</b>が目安の{t}セットに到達。<br>筋肉をタップするとセット数が出ます。", { n: reached, t: SET_TARGET[0] });
 }
 function bindWeekMap(box, weekLogs) {
   const info = box.querySelector("#weekMapInfo");
@@ -1613,9 +1814,9 @@ function bindWeekMap(box, weekLogs) {
       box.querySelectorAll(".week-map g.sel").forEach(x => x.classList.remove("sel"));
       box.querySelectorAll('.week-map g[data-k="' + k + '"]').forEach(x => x.classList.add("sel"));
       const n = sets[k] || 0;
-      info.innerHTML = '<b>' + MUSCLE_NAMES[k] + '</b><br>' + (Math.round(n * 10) / 10) + 'セット' +
-        '（目安 ' + SET_TARGET[0] + '〜' + SET_TARGET[1] + '）' +
-        (n >= SET_TARGET[1] ? '<br>多め' : n >= SET_TARGET[0] ? '<br>十分' : '');
+      info.innerHTML = '<b>' + t(MUSCLE_NAMES[k]) + '</b><br>' +
+        t("{n}セット（目安 {a}〜{b}）", { n: Math.round(n * 10) / 10, a: SET_TARGET[0], b: SET_TARGET[1] }) +
+        (n >= SET_TARGET[1] ? '<br>' + t("多め") : n >= SET_TARGET[0] ? '<br>' + t("十分") : '');
     };
   });
 }
@@ -1691,8 +1892,7 @@ async function updateDataCard() {
   const logs = loadLogs();
   const photoCount = Object.keys(loadPhotos()).length;
   dataSummary.textContent =
-    "記録 " + logs.length + "件 / マシン写真 " + photoCount + "枚" +
-    "（このブラウザの中だけに保存されています）";
+    t("記録 {n}件 / マシン写真 {p}枚（このブラウザの中だけに保存されています）", { n: logs.length, p: photoCount });
 
   if (navigator.storage && navigator.storage.estimate) {
     const est = await navigator.storage.estimate();
@@ -1703,13 +1903,13 @@ async function updateDataCard() {
 // ブラウザに「容量が足りなくなってもこのデータは消さないで」と申請する
 async function requestPersistentStorage() {
   if (!(navigator.storage && navigator.storage.persist)) {
-    persistNote.textContent = "定期的に書き出してバックアップを取ってください。";
+    persistNote.textContent = t("定期的に書き出してバックアップを取ってください。");
     return;
   }
   const granted = await navigator.storage.persisted() || await navigator.storage.persist();
-  persistNote.textContent = granted
+  persistNote.textContent = t(granted
     ? "✓ このブラウザがデータを保持する設定になっています。"
-    : "※ 容量不足時にブラウザがデータを消す可能性があります。定期的に書き出してください。";
+    : "※ 容量不足時にブラウザがデータを消す可能性があります。定期的に書き出してください。");
 }
 
 document.getElementById("exportBtn").onclick = () => {
@@ -1729,7 +1929,7 @@ document.getElementById("exportBtn").onclick = () => {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showToast("書き出しました", a.download);
+  showToast(t("書き出しました"), a.download);
 };
 
 document.getElementById("importInput").onchange = event => {
@@ -1743,11 +1943,11 @@ document.getElementById("importInput").onchange = event => {
     try {
       data = JSON.parse(reader.result);
     } catch (e) {
-      alert("読み込めませんでした。書き出したJSONファイルを選んでください。");
+      alert(t("読み込めませんでした。書き出したJSONファイルを選んでください。"));
       return;
     }
     if (!data || !Array.isArray(data.logs)) {
-      alert("このアプリのバックアップファイルではないようです。");
+      alert(t("このアプリのバックアップファイルではないようです。"));
       return;
     }
 
@@ -1763,18 +1963,17 @@ document.getElementById("importInput").onchange = event => {
     }
 
     if (newLogs.length === 0 && newPhotos === 0) {
-      alert("追加できる新しいデータはありませんでした。");
+      alert(t("追加できる新しいデータはありませんでした。"));
       return;
     }
-    if (!confirm("記録 " + newLogs.length + "件、写真 " + newPhotos + "枚を追加します。\n" +
-                 "今ある記録は消えません。よろしいですか？")) return;
+    if (!confirm(t("記録 {n}件、写真 {p}枚を追加します。\n今ある記録は消えません。よろしいですか？",
+                   { n: newLogs.length, p: newPhotos }))) return;
 
     saveLogs(current.concat(newLogs));
     savePhotos(photos);
     renderHome();
     updateDataCard();
-    showToast("読み込みました",
-              "記録 " + newLogs.length + "件 / 写真 " + newPhotos + "枚を追加");
+    showToast(t("読み込みました"), t("記録 {n}件 / 写真 {p}枚を追加", { n: newLogs.length, p: newPhotos }));
   };
   reader.readAsText(file);
 };
@@ -1809,10 +2008,10 @@ function clearPersistedDraft() {
 // 経過時間を「12分前」のような日本語にする
 function formatElapsed(iso) {
   const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (min < 1) return "たった今";
-  if (min < 60) return min + "分前";
+  if (min < 1) return t("たった今");
+  if (min < 60) return t("{n}分前", { n: min });
   const h = Math.floor(min / 60);
-  return h + "時間" + (min % 60 ? (min % 60) + "分" : "") + "前";
+  return min % 60 ? t("{h}時間{m}分前", { h, m: min % 60 }) : t("{h}時間前", { h });
 }
 
 // メニューを変更したあとでも、過去の記録を編集して保存したときに種目が消えないようにする。
@@ -1865,7 +2064,7 @@ function renderWorkout(menuId, editLog) {
     const memo = document.getElementById("memoInput");
     memo.value = draft.memo;
     memo.oninput = e => { draft.memo = e.target.value; persistDraft(); };
-    document.getElementById("saveBtn").textContent = draft.editingId ? "この内容で更新" : "この内容で保存";
+    document.getElementById("saveBtn").textContent = t(draft.editingId ? "この内容で更新" : "この内容で保存");
     excludeLogId = editLog ? editLog.id : null;
     drawExercises();
     goTo({ s: "workout", menu: menuId, editId: editLog ? editLog.id : undefined });
@@ -1874,8 +2073,8 @@ function renderWorkout(menuId, editLog) {
     return;
   }
   if (hasInput && !confirm(
-    editLog ? "入力中の内容が保存されていません。破棄してこの記録を編集しますか？"
-            : "入力中の内容が保存されていません。破棄して別のメニューを開きますか？"
+    t(editLog ? "入力中の内容が保存されていません。破棄してこの記録を編集しますか？"
+              : "入力中の内容が保存されていません。破棄して別のメニューを開きますか？")
   )) {
     return;
   }
@@ -1912,7 +2111,7 @@ function renderWorkout(menuId, editLog) {
   const memoInput = document.getElementById("memoInput");
   memoInput.value = draft.memo;
   memoInput.oninput = e => { draft.memo = e.target.value; persistDraft(); };
-  document.getElementById("saveBtn").textContent = editLog ? "この内容で更新" : "この内容で保存";
+  document.getElementById("saveBtn").textContent = t(editLog ? "この内容で更新" : "この内容で保存");
 
   drawExercises();
   goTo({ s: "workout", menu: menuId, editId: editLog ? editLog.id : undefined });
@@ -1926,7 +2125,7 @@ function updateProgress() {
   const done = draft.exercises.filter(
     ex => ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0)
   ).length;
-  const prefix = draft.editingId ? "編集：" : "";
+  const prefix = draft.editingId ? t("編集：") : "";
   titleEl.innerHTML = prefix + menuName(draft.menu) +
     '<span class="count">' + done + " / " + draft.exercises.length + "</span>";
   persistDraft();
@@ -1947,7 +2146,7 @@ function drawExercises() {
 
     const art = document.createElement("button");
     art.className = "illust";
-    art.title = "タップで拡大 / 写真を登録";
+    art.title = t("タップで拡大 / 写真を登録");
     art.innerHTML = thumbHTML(def.name, photos);
     art.onclick = () => openArtModal(def);
     top.appendChild(art);
@@ -1956,13 +2155,13 @@ function drawExercises() {
     info.className = "ex-info";
     const last = findLastRecord(def.name);
     info.innerHTML =
-      '<div class="ex-head"><b>' + def.name + '</b>' +
+      '<div class="ex-head"><b>' + exName(def.name) + '</b>' +
       '<span class="done" hidden>' + icon("check") + '</span>' +
-      '<span class="target">' + def.target + '</span>' +
+      '<span class="target">' + (LANG === "en" ? def.target.replace("〜", "–") : def.target) + '</span>' +
       '<span class="ex-chev">' + icon("chev") + '</span></div>' +
       '<div class="prev' + (last ? '' : ' none') + '">' +
-      (last ? "前回 " + formatDate(last.date) + "　" + formatSets(last.sets)
-            : (def.note || "初回：軽めの重量で軌道を確認")) +
+      (last ? t("前回") + " " + formatDate(last.date) + "　" + formatSets(last.sets)
+            : t(def.note || "初回：軽めの重量で軌道を確認")) +
       '</div>' +
       '<div class="ex-summary"></div>';
     top.appendChild(info);
@@ -1988,7 +2187,7 @@ function drawExercises() {
     nextRow.className = "next-row";
     nextRow.hidden = true;
     const nextBtn = document.createElement("button");
-    nextBtn.innerHTML = icon("check") + "<span>" + (isLast ? "完了" : "完了して次の種目へ") + "</span>";
+    nextBtn.innerHTML = icon("check") + "<span>" + t(isLast ? "完了" : "完了して次の種目へ") + "</span>";
     nextRow.appendChild(nextBtn);
     card.appendChild(nextRow);
 
@@ -2037,8 +2236,8 @@ function drawExercises() {
         // まだ入力が無いときは、自己ベストだけ出しておく
         if (pb) {
           est.hidden = false;
-          est.innerHTML = "自己ベスト（推定1RM） <b>" + pb.value + "kg</b>" +
-            "（" + formatDate(pb.date) + " " + pb.weight + "kg×" + pb.reps + "）";
+          est.innerHTML = t("自己ベスト（推定1RM）") + " <b>" + pb.value + "kg</b>" +
+            t("（{d} {w}kg×{r}）", { d: formatDate(pb.date), w: pb.weight, r: pb.reps });
         } else {
           est.hidden = true;
         }
@@ -2046,16 +2245,16 @@ function drawExercises() {
       }
 
       est.hidden = false;
-      let html = "推定1RM <b>" + best.value + "kg</b>";
+      let html = t("推定1RM") + " <b>" + best.value + "kg</b>";
       if (def.ratio) {
-        html += "（体重比 " + (best.value / loadBodyweight()).toFixed(2) + "倍）";
+        html += t("（体重比 {r}倍）", { r: (best.value / loadBodyweight()).toFixed(2) });
       }
       if (pb) {
         html += best.value > pb.value
-          ? ' <span class="pb">自己ベスト更新（前 ' + pb.value + 'kg）</span>'
-          : "　自己ベスト " + pb.value + "kg";
+          ? ' <span class="pb">' + t("自己ベスト更新（前 {v}kg）", { v: pb.value }) + '</span>'
+          : "　" + t("自己ベスト") + " " + pb.value + "kg";
       }
-      if (best.reps > 12) html += "<br>※13回以上からの推定は誤差が大きめです";
+      if (best.reps > 12) html += "<br>" + t("※13回以上からの推定は誤差が大きめです");
       est.innerHTML = html;
     }
 
@@ -2065,7 +2264,7 @@ function drawExercises() {
       const done = draft.exercises[exIndex].sets.filter(s => s.reps !== "" && Number(s.reps) > 0);
       const cleared = done.length >= targetSets && done.every(s => Number(s.reps) >= repMax);
       hint.hidden = !cleared;
-      if (cleared) hint.textContent = "全セット完遂 ✓ 次回は 2.5〜5kg 上げてOK";
+      if (cleared) hint.textContent = t("全セット完遂 ✓ 次回は 2.5〜5kg 上げてOK");
     }
 
     // − / ＋ を押したときの重量の増減
@@ -2101,7 +2300,7 @@ function drawExercises() {
 
         const minus = document.createElement("button");
         minus.className = "step-btn"; minus.innerHTML = icon("minus");
-        minus.setAttribute("aria-label", "重量を下げる");
+        minus.setAttribute("aria-label", t("重量を下げる"));
         minus.onclick = () => adjustWeight(setIndex, -1);
         row.appendChild(minus);
 
@@ -2109,7 +2308,7 @@ function drawExercises() {
         wField.className = "f w";
         const w = document.createElement("input");
         w.type = "number"; w.inputMode = "decimal"; w.step = "0.5"; w.min = "0";
-        w.placeholder = "重量"; w.value = set.weight;
+        w.placeholder = t("重量"); w.value = set.weight;
         w.oninput = () => { set.weight = w.value; updateEstimate(); updateProgress(); };
         wField.appendChild(w);
         const wUnit = document.createElement("span");
@@ -2119,7 +2318,7 @@ function drawExercises() {
 
         const plus = document.createElement("button");
         plus.className = "step-btn"; plus.innerHTML = icon("plus");
-        plus.setAttribute("aria-label", "重量を上げる");
+        plus.setAttribute("aria-label", t("重量を上げる"));
         plus.onclick = () => adjustWeight(setIndex, 1);
         row.appendChild(plus);
 
@@ -2140,12 +2339,12 @@ function drawExercises() {
 
         const del = document.createElement("button");
         del.className = "del"; del.innerHTML = icon("close");
-        del.title = "このセットを削除"; del.setAttribute("aria-label", "このセットを削除");
+        del.title = t("このセットを削除"); del.setAttribute("aria-label", t("このセットを削除"));
         del.onclick = () => {
           // 入力済みのセットは打ち直しになるので、消す前に確認する
           if (set.reps !== "" &&
-              !confirm((setIndex + 1) + "セット目（" +
-                       (set.weight || 0) + "kg × " + set.reps + "回）を削除しますか？")) return;
+              !confirm(t("{i}セット目（{w}kg × {r}回）を削除しますか？",
+                         { i: setIndex + 1, w: set.weight || 0, r: set.reps }))) return;
           draft.exercises[exIndex].sets.splice(setIndex, 1);
           drawSets(); updateHint(); updateEstimate(); updateDone(); updateProgress();
         };
@@ -2159,7 +2358,7 @@ function drawExercises() {
 
       const add = document.createElement("button");
       add.className = "link";
-      add.innerHTML = icon("plus") + '<span style="margin-left:4px">セットを追加</span>';
+      add.innerHTML = icon("plus") + '<span style="margin-left:4px">' + t("セットを追加") + '</span>';
       add.style.display = "inline-flex";
       add.style.alignItems = "center";
       add.onclick = () => {
@@ -2172,8 +2371,8 @@ function drawExercises() {
 
       const pick = document.createElement("button");
       pick.className = "step-pick";
-      pick.textContent = "刻み " + stepFor(def.name) + "kg";
-      pick.title = "タップで切り替え";
+      pick.textContent = t("刻み {s}kg", { s: stepFor(def.name) });
+      pick.title = t("タップで切り替え");
       pick.onclick = () => { cycleStep(def.name); drawSets(); };
       footer.appendChild(pick);
 
@@ -2204,7 +2403,7 @@ document.getElementById("saveBtn").onclick = () => {
     .filter(ex => ex.sets.length > 0);
 
   if (exercises.length === 0) {
-    alert("記録するセットがありません。回数を入力してください。");
+    alert(t("記録するセットがありません。回数を入力してください。"));
     return;
   }
 
@@ -2216,7 +2415,7 @@ document.getElementById("saveBtn").onclick = () => {
     const idx = logs.findIndex(l => l.id === draft.editingId);
     if (idx === -1) {
       // 編集中に別の場所（他端末の同期など）で削除された場合
-      alert("この記録は既に削除されているため、更新できませんでした。");
+      alert(t("この記録は既に削除されているため、更新できませんでした。"));
       return;
     }
     logs[idx] = {
@@ -2245,9 +2444,9 @@ document.getElementById("saveBtn").onclick = () => {
   replaceNext = true;       // 保存した記録画面へは戻さない
   renderHome();
   showToast(
-    menuName(savedMenu) + (isEdit ? " を更新しました" : " を記録しました"),
-    exercises.length + "種目 / " + setCount + "セット / 総挙上量 " +
-      totalVolume(exercises).toLocaleString() + "kg"
+    t(isEdit ? "{m} を更新しました" : "{m} を記録しました", { m: menuName(savedMenu) }),
+    t("{n}種目 / {s}セット / 総挙上量 {v}kg",
+      { n: exercises.length, s: setCount, v: totalVolume(exercises).toLocaleString() })
   );
 };
 
@@ -2272,15 +2471,15 @@ function openArtModal(def) {
 function drawModal() {
   // 図解はタップで大きくできる（初回は小さく出して履歴を優先する）
   modalIllust.onclick = () => modalIllust.classList.toggle("zoom");
-  modalIllust.title = "タップで拡大";
+  modalIllust.title = t("タップで拡大");
   const photos = loadPhotos();
   const hasPhoto = !!photos[modalExercise.name];
-  modalTitle.textContent = modalExercise.name;
+  modalTitle.textContent = exName(modalExercise.name);
   modalIllust.innerHTML = artHTML(modalExercise.name, photos);
   modalNote.textContent = hasPhoto
-    ? modalExercise.note
-    : (modalExercise.note ? modalExercise.note + " / " : "") +
-      "ジムで実物の写真を撮って登録すると、この図の代わりに表示されます。";
+    ? t(modalExercise.note)
+    : (modalExercise.note ? t(modalExercise.note) + " / " : "") +
+      t("ジムで実物の写真を撮って登録すると、この図の代わりに表示されます。");
   photoDelete.hidden = !hasPhoto;
   drawModalMuscles();
   drawModalHistory();
@@ -2292,12 +2491,12 @@ function drawModalMuscles() {
   const info = MUSCLES[modalExercise.name];
   box.hidden = !info;
   if (!info) return;
-  const names = keys => keys.map(k => MUSCLE_NAMES[k]).join("・");
+  const names = keys => keys.map(k => t(MUSCLE_NAMES[k])).join(LANG === "en" ? ", " : "・");
   box.innerHTML =
     '<div class="views">' + muscleSVG("front", info) + muscleSVG("back", info) + '</div>' +
     '<div class="legend">' +
-      '<div><span class="dot p"></span><b>主</b> ' + names(info.p) + '</div>' +
-      (info.s.length ? '<div><span class="dot s"></span><b>補助</b> ' + names(info.s) + '</div>' : '') +
+      '<div><span class="dot p"></span><b>' + t("主") + '</b> ' + names(info.p) + '</div>' +
+      (info.s.length ? '<div><span class="dot s"></span><b>' + t("補助") + '</b> ' + names(info.s) + '</div>' : '') +
     '</div>';
 }
 
@@ -2348,11 +2547,11 @@ function trendHTML(rows) {
   const pct = pts[0].v ? Math.round(delta / pts[0].v * 1000) / 10 : 0;
   const sign = delta > 0 ? "+" : "";
   const summary =
-    '<div class="trend-sum"><span>推定1RM</span><b>' + fmt(pts[0].v) + ' → ' + fmt(pts[lastI].v) + '</b>' +
+    '<div class="trend-sum"><span>' + t("推定1RM") + '</span><b>' + fmt(pts[0].v) + ' → ' + fmt(pts[lastI].v) + '</b>' +
     '<span class="' + (delta > 0 ? "up" : "") + '">' + sign + (Math.round(delta * 10) / 10) + 'kg（' + sign + pct + '%）</span></div>';
 
   return '<div class="trend">' + summary +
-    '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="推定1RMの推移 ' + fmt(pts[0].v) + 'から' + fmt(pts[lastI].v) + '">' +
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + t("推定1RMの推移 {a}から{b}", { a: fmt(pts[0].v), b: fmt(pts[lastI].v) }) + '">' +
     '<line class="t-grid" x1="' + L + '" x2="' + R + '" y1="' + TOP + '" y2="' + TOP + '"/>' +
     '<line class="t-base" x1="' + L + '" x2="' + R + '" y1="' + BOT + '" y2="' + BOT + '"/>' +
     '<path class="t-area" d="' + area + '"/><path class="t-line" d="' + line + '"/>' + dots + labels +
@@ -2367,14 +2566,14 @@ function drawModalHistory() {
   box.innerHTML = "";
 
   const heading = document.createElement("h4");
-  heading.textContent = "この種目の記録";
+  heading.textContent = t("この種目の記録");
   box.appendChild(heading);
 
   if (rows.length === 0) {
     const empty = document.createElement("p");
     empty.className = "muted";
     empty.style.margin = "0";
-    empty.textContent = "まだ記録がありません。";
+    empty.textContent = t("まだ記録がありません。");
     box.appendChild(empty);
     return;
   }
@@ -2399,8 +2598,8 @@ function drawModalHistory() {
   footer.className = "muted";
   footer.style.margin = "8px 0 0";
   footer.textContent = rows.length > MAX_HISTORY_ROWS
-    ? "右端は推定1RM。★が自己ベスト。直近" + MAX_HISTORY_ROWS + "件を表示（全" + rows.length + "件）"
-    : "右端は推定1RM。★が自己ベストです。";
+    ? t("右端は推定1RM。★が自己ベスト。直近{n}件を表示（全{a}件）", { n: MAX_HISTORY_ROWS, a: rows.length })
+    : t("右端は推定1RM。★が自己ベストです。");
   box.appendChild(footer);
 }
 function closeModal() {
@@ -2518,7 +2717,7 @@ function renderHistory() {
   document.getElementById("historyHint").hidden = (logs.length === 0);
   if (logs.length === 0) {
     container.innerHTML = '<p class="empty">' +
-      (allLogs.length === 0 ? "まだ記録がありません。" : menuName(historyFilter) + " の記録はまだありません。") + '</p>';
+      (allLogs.length === 0 ? t("まだ記録がありません。") : t("{m} の記録はまだありません。", { m: menuName(historyFilter) })) + '</p>';
   }
 
   // 月ごとの回数と総挙上量（絞り込み後の記録で数える）
@@ -2538,8 +2737,9 @@ function renderHistory() {
       const st = monthStats[monthKey];
       const mh = document.createElement("div");
       mh.className = "month-head";
-      mh.innerHTML = '<b>' + y + '年' + Number(m) + '月</b>' +
-        '<span>' + st.count + '回 · ' + st.volume.toLocaleString() + 'kg</span>';
+      const mon = "JanFebMarAprMayJunJulAugSepOctNovDec".substr((Number(m) - 1) * 3, 3);
+      mh.innerHTML = '<b>' + t("{y}年{m}月", { y, m: Number(m), mon }) + '</b>' +
+        '<span>' + t("{n}回", { n: st.count }) + ' · ' + st.volume.toLocaleString() + 'kg</span>';
       container.appendChild(mh);
     }
 
@@ -2552,8 +2752,8 @@ function renderHistory() {
     const time = formatTime(log.savedAt);
     const editedTime = formatTime(log.editedAt);
     const meta = [
-      time ? time + (editedTime ? "（編集 " + editedTime + "）" : "") : "",
-      log.exercises.length + "種目",
+      time ? time + (editedTime ? t("（編集 {t}）", { t: editedTime }) : "") : "",
+      t("{n}種目", { n: log.exercises.length }),
       totalVolume(log.exercises).toLocaleString() + "kg"
     ].filter(Boolean).join(" · ");
     head.innerHTML =
@@ -2569,8 +2769,8 @@ function renderHistory() {
     const edit = document.createElement("button");
     edit.className = "log-del";
     edit.innerHTML = icon("edit");
-    edit.title = "この記録を編集";
-    edit.setAttribute("aria-label", "この記録を編集");
+    edit.title = t("この記録を編集");
+    edit.setAttribute("aria-label", t("この記録を編集"));
     edit.onclick = () => renderWorkout(log.menu, log);
     head.appendChild(edit);
 
@@ -2578,10 +2778,10 @@ function renderHistory() {
     const del = document.createElement("button");
     del.className = "log-del log-trash";
     del.innerHTML = icon("trash");
-    del.title = "この記録を削除";
-    del.setAttribute("aria-label", "この記録を削除");
+    del.title = t("この記録を削除");
+    del.setAttribute("aria-label", t("この記録を削除"));
     del.onclick = () => {
-      if (!confirm(formatDate(log.date) + " の記録を削除しますか？")) return;
+      if (!confirm(t("{d} の記録を削除しますか？", { d: formatDate(log.date) }))) return;
       markDeleted(log.id);
       saveLogs(loadLogs().filter(l => l.id !== log.id));
       renderHistory();
@@ -2595,8 +2795,8 @@ function renderHistory() {
     for (const ex of log.exercises) {
       const line = document.createElement("div");
       const name = document.createElement("button");
-      name.textContent = ex.name;
-      name.title = "この種目の記録を見る";
+      name.textContent = exName(ex.name);
+      name.title = t("この種目の記録を見る");
       name.onclick = () => openArtModal(findExerciseDef(ex.name));
       line.appendChild(name);
       const sets = document.createElement("span");
@@ -2610,19 +2810,19 @@ function renderHistory() {
     if (log.memo) {
       const memo = document.createElement("div");
       memo.className = "log-memo";
-      memo.textContent = "メモ：" + log.memo;
+      memo.textContent = t("メモ：") + log.memo;
       card.appendChild(memo);
     }
 
     container.appendChild(card);
   }
   goTo({ s: "history" });
-  showScreen("history", "履歴");
+  showScreen("history", t("履歴"));
 }
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-29.12";
+const APP_VERSION = "2026-10-29.13";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
@@ -2637,16 +2837,15 @@ function loadReminderSetting() {
 }
 
 async function notifyUnsaved(wip) {
-  const body = menuName(wip.draft.menu) + " の記録が、" +
-               formatElapsed(wip.updatedAt) + "から保存されていません。";
+  const body = t("{m} の記録が、{e}から保存されていません。", { m: menuName(wip.draft.menu), e: formatElapsed(wip.updatedAt) });
   try {
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification("保存忘れはありませんか？", {
+    await reg.showNotification(t("保存忘れはありませんか？"), {
       body, tag: "workout-unsaved", icon: "icons/icon-192-v3.png"
     });
   } catch (e) {
     // Service Worker が使えない環境向けの保険（デスクトップ版Chromeなど）
-    if ("Notification" in window) new Notification("保存忘れはありませんか？", { body });
+    if ("Notification" in window) new Notification(t("保存忘れはありませんか？"), { body });
   }
 }
 
@@ -2668,15 +2867,14 @@ function drawReminderSeg() {
   const value = loadReminderSetting();
   reminderSwitch.setAttribute("aria-checked", String(value === "on"));
   if (!("Notification" in window)) {
-    reminderNote.textContent = "このブラウザは通知に対応していません。";
+    reminderNote.textContent = t("このブラウザは通知に対応していません。");
   } else if (Notification.permission === "denied") {
-    reminderNote.textContent = "通知がブロックされています。ブラウザの設定から許可してください。";
+    reminderNote.textContent = t("通知がブロックされています。ブラウザの設定から許可してください。");
   } else if (value === "on") {
     reminderNote.textContent =
-      "最後に入力してから1時間、保存されていなければ通知します。" +
-      "アプリを開いている間だけ働くので、完全に閉じた場合は気づけません。";
+      t("最後に入力してから1時間、保存されていなければ通知します。アプリを開いている間だけ働くので、完全に閉じた場合は気づけません。");
   } else {
-    reminderNote.textContent = "オンにすると、保存を忘れたまま1時間経ったときに通知します。";
+    reminderNote.textContent = t("オンにすると、保存を忘れたまま1時間経ったときに通知します。");
   }
 }
 
@@ -2696,7 +2894,28 @@ reminderSwitch.onclick = async () => {
   drawReminderSeg();
 };
 
+// ===== 言語の切り替え ==================================================
+const langSeg = document.getElementById("langSeg");
+function applyLang(setting) {
+  if (setting === "auto") localStorage.removeItem(LANG_KEY);
+  else localStorage.setItem(LANG_KEY, setting);
+  LANG = resolveLang(setting);
+  for (const btn of langSeg.children) btn.classList.toggle("on", btn.dataset.langValue === setting);
+  translateStatic();
+}
+for (const btn of langSeg.children) {
+  btn.onclick = () => {
+    applyLang(btn.dataset.langValue);
+    // 今の画面を作り直して、動的な文言も切り替える
+    drawReminderSeg();
+    requestPersistentStorage();
+    renderState(currentState.s === "modal" ? { s: currentState.under } : currentState);
+    window.dispatchEvent(new Event("langchange"));
+  };
+}
+
 // ===== 起動 ===========================================================
+applyLang(loadLangSetting());
 applyTheme(loadTheme());
 
 // 入力途中で完全終了しても、次に開いたときに続きから入力できるようにする

@@ -27,8 +27,15 @@ const signInBtn  = document.getElementById("cloudSignIn");
 const signOutBtn = document.getElementById("cloudSignOut");
 const syncBtn    = document.getElementById("cloudSyncNow");
 
-const status = t => { statusEl.textContent = t; };
-const note   = t => { noteEl.textContent = t; };
+// 文言は本体の t()（言語切り替え）で訳す。言語が変わったら、最後に出した文言を訳し直す
+const tr = (ja, vars) => (window.t ? window.t(ja, vars) : ja);
+let lastStatus = null, lastNote = null;   // [日本語の文言, 差し込み, 後ろに付ける生の文字列]
+const status = (ja, vars, raw = "") => { lastStatus = [ja, vars, raw]; statusEl.textContent = tr(ja, vars) + raw; };
+const note   = (ja, vars, raw = "") => { lastNote = [ja, vars, raw]; noteEl.textContent = tr(ja, vars) + raw; };
+window.addEventListener("langchange", () => {
+  if (lastStatus) status(...lastStatus);
+  if (lastNote) note(...lastNote);
+});
 
 let A, F, auth, db;
 let currentUid = null;
@@ -63,7 +70,7 @@ function start() {
         await A.signInWithRedirect(auth, provider);
         return;
       }
-      note("ログインできませんでした：" + (e.code || e.message));
+      note("ログインできませんでした：", null, e.code || e.message);
     }
   };
   signOutBtn.onclick = () => A.signOut(auth);
@@ -78,7 +85,7 @@ function start() {
     syncBtn.hidden    = !user;
 
     if (user) {
-      status(user.email || "ログイン中");
+      if (user.email) status("", null, user.email); else status("ログイン中");
       note("記録を保存するたびに、自動でクラウドへ反映されます。");
       window.cloudSync = () => syncNow();   // 本体側の saveLogs / savePhotos から呼ばれる
       syncNow();
@@ -99,10 +106,10 @@ async function syncNow() {
     await syncLogs();
     await syncPhotos();
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    status("✓ " + now + " 同期");
+    status("✓ {t} 同期", { t: now });
   } catch (e) {
     status("同期エラー");
-    note("同期できませんでした：" + (e.code || e.message));
+    note("同期できませんでした：", null, e.code || e.message);
     console.error(e);
   } finally {
     syncing = false;
