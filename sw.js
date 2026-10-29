@@ -3,6 +3,7 @@
 // この順番にしておくと、アプリを更新したときに古い画面が居座らない。
 const CACHE = "workout-cache-v1";
 const ASSETS = ["./", "./index.html", "./firebase-sync.js", "./manifest.json",
+                "./fonts/nunito-latin.woff2", "./fonts/zen.css",
                 "./icons/icon-192-v2.png", "./icons/icon-512-v2.png"];
 
 self.addEventListener("install", event => {
