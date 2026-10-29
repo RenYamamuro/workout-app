@@ -274,6 +274,12 @@ body[data-screen="workout"] .lt { display: none; }
   .toolbar h1 { position: static; height: auto; flex: 1; justify-content: flex-start; padding-left: var(--s2); left: auto; right: auto; }
   main { padding: var(--s2) var(--s6) var(--s8); }
   body[data-screen="workout"] main { padding-top: var(--s3); }
+  .wo-nav { top: calc(60px + env(safe-area-inset-top)); margin: 0 calc(-1 * var(--s6)) var(--s3); padding: var(--s2) var(--s6); }
+}
+@media (min-width: 1100px) {
+  body[data-screen="home"] main { max-width: 1120px; }
+  #homeScreen:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--s5); align-items: start; }
+  #resumeCard { grid-column: 1 / -1; }
 }
 
 /* ---------- 板（カード）とグループ ---------- */
@@ -316,7 +322,7 @@ button.start-btn { display: flex; justify-content: center; flex-direction: colum
   margin-bottom: var(--s4); padding: var(--s3) var(--s5); border-radius: var(--r-lg); text-align: left; }
 button.start-btn b { font-size: 17px; font-weight: 700; }
 button.start-btn span { font-size: var(--t-sm); opacity: .85; font-weight: 500; }
-.week-strip { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 4px; margin-top: var(--s2); }
+.week-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: var(--s3); }
 .week-strip i { display: grid; place-items: center; aspect-ratio: 1; border-radius: 7px; background: var(--fill);
   font-style: normal; font-size: 10px; font-weight: 700; color: var(--accent-ink); }
 .week-strip i.on { background: var(--accent-btn); }
@@ -329,7 +335,34 @@ button.start-btn span { font-size: var(--t-sm); opacity: .85; font-weight: 500; 
 .date-row label { flex: none; font-size: var(--t-md); }
 .date-row input[type="date"] { width: auto; margin-left: auto; }
 
-#exerciseList .card { padding: 0; overflow: hidden; scroll-margin-top: calc(60px + env(safe-area-inset-top)); }
+#exerciseList .card { padding: 0; overflow: hidden; scroll-margin-top: calc(108px + env(safe-area-inset-top)); }
+/* 記録画面：種目の目次（上に貼りつく。タップでその種目へ） */
+.wo-nav { position: sticky; top: calc(48px + env(safe-area-inset-top)); z-index: 20;
+  display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  margin: 0 calc(-1 * var(--s4)) var(--s3); padding: var(--s2) var(--s4);
+  background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border-bottom: .5px solid var(--line); }
+.wo-nav::-webkit-scrollbar { display: none; }
+.wo-nav button { flex: none; display: inline-flex; align-items: center; gap: 5px; max-width: 170px; padding: 6px 12px;
+  border-radius: var(--r-pill); background: var(--fill); color: var(--ink-2); font-size: var(--t-sm); font-weight: 500; }
+.wo-nav button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wo-nav button i { font-style: normal; font-variant-numeric: tabular-nums; color: var(--ink-3); }
+.wo-nav button.done { background: var(--accent-wash); color: var(--accent); }
+.wo-nav button.done i { color: var(--accent); }
+.wo-bar { position: absolute; left: 0; bottom: -.5px; height: 2.5px; background: var(--accent-btn);
+  border-radius: 0 2px 2px 0; transition: width .35s var(--ease); }
+body:not([data-screen="workout"]) .wo-bar { display: none; }
+/* 履歴：週ごとの総挙上量 */
+.vol-chart { padding: var(--s4); margin-bottom: var(--s4); }
+.vol-chart .head { display: block; }
+.vol-chart .head b { display: block; font-size: var(--t-md); font-weight: 600; }
+.vol-chart .head > span { display: block; margin-top: 2px; font-size: var(--t-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.vol-chart .head .up { color: var(--good); }
+.vol-chart svg { display: block; width: 100%; height: auto; margin-top: var(--s3); }
+.vol-chart .bar { fill: var(--series-1-soft); }
+.vol-chart .bar.now { fill: var(--series-1); }
+.vol-chart .lbl { font-size: 10px; fill: var(--ink-3); font-variant-numeric: tabular-nums; }
+.vol-chart .val { font-size: 10px; fill: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
 .ex-top { display: flex; gap: var(--s3); padding: var(--s4); }
 .ex-info { flex: 1; min-width: 0; }
 .illust {
@@ -562,6 +595,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
 .toast .ic { color: var(--good); width: 20px; height: 20px; }
 .toast .msg { flex: 1; min-width: 0; font-weight: 600; font-size: var(--t-md); }
 .toast .sub { display: block; margin-top: 1px; color: var(--ink-3); font-size: var(--t-sm); font-weight: 400; }
+.toast .sub .pb { color: var(--good); font-weight: 600; }
 @media (min-width: 721px) { .toast { left: 264px; bottom: var(--s5); } }
 
 /* ---------- 動き ---------- */
@@ -604,6 +638,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
     <svg class="ic" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg>戻る
   </button>
   <h1 id="title">LIFT LOG</h1>
+  <div class="wo-bar" id="woBar" style="width:0"></div>
 </header>
 
 <main>
@@ -622,10 +657,14 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
         <button class="link" id="resumeDiscard">破棄</button>
       </div>
     </div>
-    <button class="primary start-btn" id="startNext" hidden></button>
-    <div class="tiles" id="summaryTiles"></div>
-    <div class="group" id="menuList"></div>
-    <p class="group-note">PUSH → PULL → LEG の順に、行く日に次のメニューを実施します。</p>
+    <div class="home-main">
+      <button class="primary start-btn" id="startNext" hidden></button>
+      <div class="tiles" id="summaryTiles"></div>
+    </div>
+    <div class="home-side">
+      <div class="group" id="menuList"></div>
+      <p class="group-note">PUSH → PULL → LEG の順に、行く日に次のメニューを実施します。</p>
+    </div>
   </section>
 
   <!-- 記録画面 -->
@@ -634,6 +673,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
       <label for="dateInput">実施日</label>
       <input type="date" id="dateInput">
     </div>
+    <nav class="wo-nav" id="woNav" aria-label="種目の一覧"></nav>
     <div id="exerciseList"></div>
     <div class="card memo-card">
       <label for="memoInput">メモ（体調・筋肉痛・気づいたことなど）</label>
@@ -726,6 +766,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
         <button data-hf="C">LEG</button>
       </span>
     </div>
+    <div class="card vol-chart" id="volChart" hidden></div>
     <p class="group-foot" id="historyHint" style="margin:0 0 var(--s3)">
       日付をタップすると中身を開きます。種目名をタップすると、その種目だけの記録と推移を見られます。
     </p>
@@ -873,7 +914,10 @@ const EN = {
   "この記録は既に削除されているため、更新できませんでした。": "This workout was already deleted, so it couldn't be updated.",
   "{m} を更新しました": "{m} updated", "{m} を記録しました": "{m} saved",
   "{n}種目 / {s}セット / 総挙上量 {v}kg": v => plural(v.n, "exercise", "exercises") + " / " + plural(v.s, "set", "sets") + " / {v}kg total",
-  "自重": "BW", "（{d} {w}kg×{r}）": " ({d}, {w}kg×{r})",
+  "自重": "BW", "種目の一覧": "Exercises",
+  "記録すると、今週鍛えた筋肉が赤くなります。筋肉をタップするとセット数が出ます。": "Muscles you train this week turn red here. Tap a muscle to see its sets.",
+  "週ごとの総挙上量": "Weekly volume", "今週": "This week", "（先週比 {d}%）": "({d}% vs last week)",
+  "自己ベスト更新：{x}": "New best: {x}", "（{d} {w}kg×{r}）": " ({d}, {w}kg×{r})",
 
   // 種目の詳細
   "ジムで実物の写真を撮って登録すると、この図の代わりに表示されます。": "Add a photo of the machine at your gym to show it here instead of the drawing.",
@@ -998,7 +1042,7 @@ const MENUS = {
       { name: "リアデルトフライ",               target: "3×12〜15", note: "ペクトラルフライを逆向きに座り、胸をパッドに当てて肩の高さで外へ開く" },
       { name: "レッグカール",                   target: "3×12〜15", note: "ハムストリング" },
       { name: "MTSバイセップカール",            target: "2×12",     note: "二頭の単関節種目" },
-      { name: "バックエクステンション",         target: "2×15",     note: "自重なら重量は空欄でOK" }
+      { name: "バックエクステンション",         target: "2×15",     bw: true, note: "自重なら重量は空欄でOK" }
     ]
   },
   C: {
@@ -1709,23 +1753,15 @@ document.getElementById("resumeDiscard").onclick = () => {
 
 function drawSummaryTiles(logs) {
   const box = document.getElementById("summaryTiles");
-  if (logs.length === 0) {
-    box.innerHTML =
-      '<div class="tile" style="grid-column:1/-1">' +
-      '<div class="label">' + t("はじめに") + '</div>' +
-      '<div class="value" style="font-size:var(--t-md)">' + t("{m} から始めましょう", { m: menuName("A") }) + '</div>' +
-      '<div class="foot">' + t("記録をつけると、前回の重量が自動で入ります") + '</div></div>';
-    return;
-  }
 
-  // 今週（月曜はじまり）の回数と、前回の内容
+  // 今週（月曜はじまり）の回数と、前回の内容。記録が0件でも同じ形で見せて、何が分かる画面かを伝える
   const weekStart = startOfWeek();
   const thisWeek = logs.filter(l => l.date >= weekStart);
   const done = thisWeek.length;
   const last = logs[0];
-  const daysAgo = Math.round(
+  const daysAgo = last ? Math.round(
     (new Date(todayString() + "T00:00:00") - new Date(last.date + "T00:00:00")) / 86400000
-  );
+  ) : null;
   const C = 2 * Math.PI * 20;
   const ratio = Math.min(1, done / WEEKLY_GOAL);
 
@@ -1739,21 +1775,39 @@ function drawSummaryTiles(logs) {
         '<div><div class="value" style="margin:0">' + done + '<small>' + t("/ {n}回", { n: WEEKLY_GOAL }) + '</small></div>' +
         '<div class="foot">' + (done >= WEEKLY_GOAL ? t("達成！") : t("あと{n}回", { n: WEEKLY_GOAL - done })) + '</div></div>' +
       '</div>' +
+      '<div class="week-strip">' + weekDaysHTML(logs, weekStart) + '</div>' +
     '</div>' +
     '<div class="tile">' +
       '<div class="label">' + t("前回") + '</div>' +
-      '<div class="value">' + (daysAgo === 0 ? t("今日") : daysAgo + '<small>' + t("日前", { n: daysAgo }) + '</small>') + '</div>' +
-      '<div class="foot">' + formatDate(last.date) + ' ' + menuName(last.menu) + '</div>' +
+      (last
+        ? '<div class="value">' + (daysAgo === 0 ? t("今日") : daysAgo + '<small>' + t("日前", { n: daysAgo }) + '</small>') + '</div>' +
+          '<div class="foot">' + formatDate(last.date) + ' ' + menuName(last.menu) + '</div>'
+        : '<div class="value">—</div>' +
+          '<div class="foot">' + t("記録をつけると、前回の重量が自動で入ります") + '</div>') +
     '</div>' +
     '<div class="tile" style="grid-column:1/-1">' +
       '<div class="label">' + t("今週の部位（セット数）") + '</div>' +
       weekMapHTML(thisWeek) +
-    '</div>' +
-    '<div class="tile" style="grid-column:1/-1">' +
-      '<div class="label">' + t("直近2週間") + '</div>' +
-      '<div class="week-strip">' + stripHTML(logs) + '</div>' +
     '</div>';
   bindWeekMap(box, thisWeek);
+}
+
+// 今週の月〜日を1マスずつ並べ、行った日はメニューの印（P/L/G）で埋める
+function weekDaysHTML(logs, weekStart) {
+  const byDate = {};
+  for (const l of logs) if (!byDate[l.date]) byDate[l.date] = l.menu;
+  const today = todayString();
+  const start = new Date(weekStart + "T00:00:00");
+  const p = n => String(n).padStart(2, "0");
+  let out = "";
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start); d.setDate(d.getDate() + i);
+    const key = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+    const menu = byDate[key];
+    out += '<i class="' + (menu ? "on" : "") + (key === today ? " today" : "") + '" title="' + formatDate(key) + '">' +
+           (menu ? menuMark(menu) : "") + '</i>';
+  }
+  return out;
 }
 
 const WEEKLY_GOAL = 3;            // 週の目標回数
@@ -1800,7 +1854,7 @@ function weekMapHTML(weekLogs) {
 }
 function weekMapSummary(sets) {
   const keys = Object.keys(sets);
-  if (keys.length === 0) return t("今週はまだ記録がありません。筋肉をタップするとセット数が出ます。");
+  if (keys.length === 0) return t("記録すると、今週鍛えた筋肉が赤くなります。筋肉をタップするとセット数が出ます。");
   const reached = keys.filter(k => sets[k] >= SET_TARGET[0]).length;
   return t("<b>{n}部位</b>が目安の{t}セットに到達。<br>筋肉をタップするとセット数が出ます。", { n: reached, t: SET_TARGET[0] });
 }
@@ -1819,22 +1873,6 @@ function bindWeekMap(box, weekLogs) {
         (n >= SET_TARGET[1] ? '<br>' + t("多め") : n >= SET_TARGET[0] ? '<br>' + t("十分") : '');
     };
   });
-}
-
-// 直近14日を1マスずつ並べ、行った日はメニューの文字で埋める（右端が今日）
-function stripHTML(logs) {
-  const byDate = {};
-  for (const l of logs) if (!byDate[l.date]) byDate[l.date] = l.menu;
-  const today = new Date(todayString() + "T00:00:00");
-  let out = "";
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(today); d.setDate(d.getDate() - i);
-    const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    const menu = byDate[key];
-    out += '<i class="' + (menu ? "on" : "") + (i === 0 ? " today" : "") + '" title="' + formatDate(key) + '">' +
-           (menu ? menuMark(menu) : "") + '</i>';
-  }
-  return out;
 }
 
 // ===== データの書き出し・読み込み =====================================
@@ -2128,6 +2166,11 @@ function updateProgress() {
   const prefix = draft.editingId ? t("編集：") : "";
   titleEl.innerHTML = prefix + menuName(draft.menu) +
     '<span class="count">' + done + " / " + draft.exercises.length + "</span>";
+  document.getElementById("woBar").style.width = (done / draft.exercises.length * 100) + "%";
+  const chips = document.getElementById("woNav").children;
+  draft.exercises.forEach((ex, i) => {
+    if (chips[i]) chips[i].classList.toggle("done", ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0));
+  });
   persistDraft();
 }
 
@@ -2135,6 +2178,19 @@ function drawExercises() {
   const container = document.getElementById("exerciseList");
   const photos = loadPhotos();
   container.innerHTML = "";
+
+  // 上に貼りつく種目の目次。入力済みの種目は色が変わる
+  const nav = document.getElementById("woNav");
+  nav.innerHTML = "";
+  currentMenu.exercises.forEach((def, i) => {
+    const chip = document.createElement("button");
+    chip.innerHTML = '<i>' + (i + 1) + '</i><span>' + exName(def.name) + '</span>';
+    chip.onclick = () => {
+      const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+      document.getElementById("exerciseList").children[i].scrollIntoView({ behavior, block: "start" });
+    };
+    nav.appendChild(chip);
+  });
 
   currentMenu.exercises.forEach((def, exIndex) => {
     const card = document.createElement("div");
@@ -2308,7 +2364,7 @@ function drawExercises() {
         wField.className = "f w";
         const w = document.createElement("input");
         w.type = "number"; w.inputMode = "decimal"; w.step = "0.5"; w.min = "0";
-        w.placeholder = t("重量"); w.value = set.weight;
+        w.placeholder = t(def.bw ? "自重" : "重量"); w.value = set.weight;
         w.oninput = () => { set.weight = w.value; updateEstimate(); updateProgress(); };
         wField.appendChild(w);
         const wUnit = document.createElement("span");
@@ -2326,7 +2382,9 @@ function drawExercises() {
         rField.className = "f r";
         const r = document.createElement("input");
         r.type = "number"; r.inputMode = "numeric"; r.min = "0";
-        r.placeholder = "–"; r.value = set.reps;
+        // 前回の同じセットの回数を薄く出して、今日の目標にしてもらう
+        const prevSet = last && last.sets[setIndex];
+        r.placeholder = prevSet ? String(prevSet.reps) : "–"; r.value = set.reps;
         r.oninput = () => {
           set.reps = r.value;
           updateHint(); updateEstimate(); updateDone(); updateProgress();
@@ -2410,6 +2468,12 @@ document.getElementById("saveBtn").onclick = () => {
   const logs = loadLogs();
   const isEdit = !!draft.editingId;
   const savedMenu = draft.menu;
+  // 保存する前に、自己ベスト（推定1RM）を更新した種目を拾っておく（初めての種目は数えない）
+  const newBests = exercises.filter(ex => {
+    const before = personalBest(ex.name);
+    const now = bestOfSets(ex.sets);
+    return before && now && now.value > before.value;
+  }).map(ex => exName(ex.name));
 
   if (isEdit) {
     const idx = logs.findIndex(l => l.id === draft.editingId);
@@ -2446,7 +2510,8 @@ document.getElementById("saveBtn").onclick = () => {
   showToast(
     t(isEdit ? "{m} を更新しました" : "{m} を記録しました", { m: menuName(savedMenu) }),
     t("{n}種目 / {s}セット / 総挙上量 {v}kg",
-      { n: exercises.length, s: setCount, v: totalVolume(exercises).toLocaleString() })
+      { n: exercises.length, s: setCount, v: totalVolume(exercises).toLocaleString() }) +
+      (newBests.length ? '<br><b class="pb">' + t("自己ベスト更新：{x}", { x: newBests.join(LANG === "en" ? ", " : "・") }) + '</b>' : '')
   );
 };
 
@@ -2702,6 +2767,52 @@ for (const btn of historyFilterEl.children) {
   btn.onclick = () => { historyFilter = btn.dataset.hf; renderHistory(); };
 }
 
+// 直近8週の、週ごとの総挙上量（月曜はじまり）。今週を濃く、先週との差を見出しに出す
+const VOL_WEEKS = 8;
+function drawVolumeChart(logs) {
+  const box = document.getElementById("volChart");
+  box.hidden = logs.length === 0;
+  if (box.hidden) return;
+
+  const p = n => String(n).padStart(2, "0");
+  const key = d => d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  const thisMon = new Date(startOfWeek() + "T00:00:00");
+  const weeks = [];
+  for (let i = VOL_WEEKS - 1; i >= 0; i--) {
+    const from = new Date(thisMon); from.setDate(from.getDate() - i * 7);
+    const to = new Date(from); to.setDate(to.getDate() + 7);
+    const vol = logs.filter(l => l.date >= key(from) && l.date < key(to))
+                    .reduce((v, l) => v + totalVolume(l.exercises), 0);
+    weeks.push({ from, vol });
+  }
+
+  const now = weeks[weeks.length - 1].vol, prev = weeks[weeks.length - 2].vol;
+  const diff = prev ? Math.round((now - prev) / prev * 100) : null;
+  const W = 320, H = 118, TOP = 16, BOT = 96, gap = 8;
+  const bw = (W - gap * (VOL_WEEKS - 1)) / VOL_WEEKS;
+  const max = Math.max(...weeks.map(w => w.vol), 1);
+  let bars = "";
+  weeks.forEach((w, i) => {
+    const h = w.vol ? Math.max(3, (BOT - TOP) * w.vol / max) : 0;
+    const x = i * (bw + gap);
+    const isNow = i === weeks.length - 1;
+    bars += '<rect class="bar' + (isNow ? " now" : "") + '" x="' + x.toFixed(1) + '" y="' + (BOT - h).toFixed(1) +
+            '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="4"><title>' +
+            (w.from.getMonth() + 1) + "/" + w.from.getDate() + " " + Math.round(w.vol).toLocaleString() + 'kg</title></rect>';
+    if (isNow && w.vol) bars += '<text class="val" x="' + (x + bw / 2).toFixed(1) + '" y="' + (BOT - h - 4).toFixed(1) +
+                                '" text-anchor="middle">' + Math.round(w.vol / 100) / 10 + 't</text>';
+    bars += '<text class="lbl" x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' +
+            (w.from.getMonth() + 1) + "/" + w.from.getDate() + '</text>';
+  });
+
+  box.innerHTML =
+    '<div class="head"><b>' + t("週ごとの総挙上量") + '</b>' +
+      '<span>' + t("今週") + ' ' + Math.round(now).toLocaleString() + 'kg' +
+      (diff !== null ? ' <span class="' + (diff > 0 ? "up" : "") + '" style="margin:0">' +
+        t("（先週比 {d}%）", { d: (diff > 0 ? "+" : "") + diff }) + '</span>' : '') + '</span></div>' +
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + t("週ごとの総挙上量") + '">' + bars + '</svg>';
+}
+
 function renderHistory() {
   excludeLogId = null;
   const container = document.getElementById("logList");
@@ -2715,6 +2826,7 @@ function renderHistory() {
   }
   document.getElementById("historyFilterRow").hidden = (allLogs.length === 0);
   document.getElementById("historyHint").hidden = (logs.length === 0);
+  drawVolumeChart(logs);
   if (logs.length === 0) {
     container.innerHTML = '<p class="empty">' +
       (allLogs.length === 0 ? t("まだ記録がありません。") : t("{m} の記録はまだありません。", { m: menuName(historyFilter) })) + '</p>';
@@ -2822,7 +2934,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-29.13";
+const APP_VERSION = "2026-10-30.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
