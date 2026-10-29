@@ -7,7 +7,7 @@
 <meta name="description" content="A/B/C 3分割メニューのトレーニング記録アプリ">
 <!-- ホーム画面に追加したときの挙動（iOS / Android / デスクトップ） -->
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="筋トレ記録">
+<meta name="apple-mobile-web-app-title" content="LIFT LOG">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180-v2.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180-v2.png">
 <link rel="icon" href="icons/icon-192-v2.png" sizes="192x192" type="image/png">
-<title>筋トレ記録</title>
+<title>LIFT LOG</title>
 <script>
   // 表示テーマは描画前に当てる。あとから当てると一瞬ちらつくため。
   try {
@@ -585,11 +585,11 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
   <button id="backBtn" class="tb-btn" hidden aria-label="戻る">
     <svg class="ic" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg>戻る
   </button>
-  <h1 id="title">筋トレ記録</h1>
+  <h1 id="title">LIFT LOG</h1>
 </header>
 
 <main>
-  <div class="lt"><h2 class="lt-title" id="largeTitle">筋トレ記録</h2></div>
+  <div class="lt"><h2 class="lt-title" id="largeTitle">LIFT LOG</h2></div>
 
   <!-- ホーム画面 -->
   <section id="homeScreen">
@@ -708,7 +708,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
 </main>
 
 <nav class="tabbar" id="tabbar" aria-label="メインメニュー">
-  <div class="sb-title">筋トレ記録</div>
+  <div class="sb-title">LIFT LOG</div>
   <div class="sb-sub">A・B・C の3分割</div>
   <div class="tabs">
     <button class="tab" id="homeTab" data-tab="home">
@@ -1448,7 +1448,7 @@ function renderHome() {
   start.onclick = () => renderWorkout(next);
 
   goTo({ s: "home" });
-  showScreen("home", "筋トレ記録");
+  showScreen("home", "LIFT LOG");
 }
 
 // 保存されていない入力があれば、ホームの一番上に出す
@@ -2519,7 +2519,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-29.8";
+const APP_VERSION = "2026-10-29.9";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================

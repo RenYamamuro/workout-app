@@ -1,6 +1,6 @@
 {
-  "name": "筋トレ記録",
-  "short_name": "筋トレ記録",
+  "name": "LIFT LOG",
+  "short_name": "LIFT LOG",
   "description": "A/B/C 3分割メニューのトレーニング記録。前回の重量・推定1RM・種目ごとの履歴。",
   "lang": "ja",
   "dir": "ltr",
