@@ -312,6 +312,15 @@ body[data-screen="workout"] .lt { display: none; }
 .menu-btn .sub { display: block; margin-top: 1px; font-size: var(--t-sm); color: var(--ink-3); white-space: normal; }
 .menu-btn .last { flex: none; font-size: var(--t-xs); color: var(--ink-3); }
 .menu-btn .chev { width: 8px; height: 14px; flex: none; color: var(--ink-3); }
+button.start-btn { display: flex; justify-content: center; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 64px;
+  margin-bottom: var(--s4); padding: var(--s3) var(--s5); border-radius: var(--r-lg); text-align: left; }
+button.start-btn b { font-size: 17px; font-weight: 700; }
+button.start-btn span { font-size: var(--t-sm); opacity: .85; font-weight: 500; }
+.week-strip { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 4px; margin-top: var(--s2); }
+.week-strip i { display: grid; place-items: center; aspect-ratio: 1; border-radius: 7px; background: var(--fill);
+  font-style: normal; font-size: 10px; font-weight: 700; color: var(--accent-ink); }
+.week-strip i.on { background: var(--accent-btn); }
+.week-strip i.today { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .next-tag { flex: none; font-size: var(--t-xs); font-weight: 600; color: var(--accent); background: var(--accent-wash); padding: 3px 10px; border-radius: var(--r-pill); }
 .group-note { margin: calc(-1 * var(--s2)) 0 var(--s5); padding: 0 var(--s4); font-size: var(--t-sm); color: var(--ink-3); }
 
@@ -344,13 +353,13 @@ body[data-screen="workout"] .lt { display: none; }
 :root[data-theme="dark"] {
   --m1-a: #ff7d72; --m1-b: #e5483c; --m1-c: #a8261f;
   --m2-a: #9a5650; --m2-b: #7e403b; --m2-c: #5f2f2b;
-  --m0-a: #3a3a3e; --m0-c: #2a2a2d; --mb: #2f2f33;
+  --m0-a: #6a6a71; --m0-c: #4c4c52; --mb: #55555b;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --m1-a: #ff7d72; --m1-b: #e5483c; --m1-c: #a8261f;
     --m2-a: #9a5650; --m2-b: #7e403b; --m2-c: #5f2f2b;
-    --m0-a: #3a3a3e; --m0-c: #2a2a2d; --mb: #2f2f33;
+    --m0-a: #6a6a71; --m0-c: #4c4c52; --mb: #55555b;
   }
 }
 .mm path, .mm circle, .mm rect { stroke: var(--panel); stroke-width: .8; stroke-linejoin: round; }
@@ -401,6 +410,8 @@ body[data-screen="workout"] .lt { display: none; }
 .set .no { width: 18px; font-size: var(--t-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .set input { width: 100%; min-width: 0; min-height: 40px; padding: 0 var(--s3); text-align: right; font-size: 16px; font-variant-numeric: tabular-nums; }
 .set .unit { font-size: var(--t-md); color: var(--ink-3); flex: none; }
+/* 回数がまだ空のセットの重量は、前回からの仮の値なので薄く出す */
+.set:has(.r input:placeholder-shown) .w input { color: var(--ink-3); }
 .set .f { display: flex; align-items: center; gap: var(--s1); min-width: 0; }
 .set .w { flex: 1.3; }
 .set .r { flex: 1; }
@@ -459,14 +470,17 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
 }
 .month-head span { margin-left: auto; font-size: var(--t-sm); font-weight: 400; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 #logList .card { padding: 0; }
-.log-head { display: flex; align-items: baseline; gap: var(--s2); padding: var(--s4) var(--s4) 0; }
-.log-head b { font-size: 17px; font-weight: 600; }
-.log-head .vol { margin-left: auto; font-size: var(--t-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.log-time { padding: 0 var(--s4); font-size: var(--t-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.log-body { margin-top: var(--s2); font-variant-numeric: tabular-nums; }
-.log-body > div { display: flex; align-items: center; gap: var(--s2); min-height: 48px; padding: 0 var(--s4); border-top: 1px solid var(--line); font-size: var(--t-md); color: var(--ink-2); }
-.log-body .sets { flex: 1 1 0; min-width: 0; text-align: right; overflow-wrap: anywhere; }
-.log-body button { flex: 0 1 auto; max-width: 55%; text-align: left; white-space: normal; font-size: var(--t-md); font-weight: 500; color: var(--ink); }
+.log-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s4) var(--s4) var(--s3); cursor: pointer; }
+.log-head .t { flex: 1; min-width: 0; }
+.log-head b { display: block; font-size: 17px; font-weight: 600; }
+.log-time { display: block; margin-top: 2px; font-size: var(--t-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.log-head .log-chev { flex: none; display: inline-flex; color: var(--ink-3); transition: transform .25s var(--ease); }
+.log-card.open .log-chev { transform: rotate(180deg); }
+.log-card:not(.open) .log-body, .log-card:not(.open) .log-memo { display: none; }
+.log-body { font-variant-numeric: tabular-nums; }
+.log-body > div { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s3); row-gap: 2px; min-height: 48px; padding: 10px var(--s4); border-top: 1px solid var(--line); font-size: var(--t-md); color: var(--ink-2); }
+.log-body .sets { flex: 1 0 auto; max-width: 100%; text-align: right; overflow-wrap: anywhere; }
+.log-body button { flex: 0 1 auto; max-width: 100%; text-align: left; white-space: normal; font-size: var(--t-md); font-weight: 500; color: var(--ink); }
 .log-body button::after { content: "›"; color: var(--ink-3); margin-left: 6px; font-size: 18px; line-height: 1; }
 .log-memo { padding: var(--s3) var(--s4); border-top: 1px solid var(--line); font-size: var(--t-md); color: var(--ink-3); }
 .log-del { flex: none; color: var(--ink-3); padding: 14px 10px; margin: -14px -4px -14px -6px; display: inline-flex; align-items: center; border-radius: var(--r-pill); }
@@ -590,6 +604,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
         <button class="link" id="resumeDiscard">破棄</button>
       </div>
     </div>
+    <button class="primary start-btn" id="startNext" hidden></button>
     <div class="tiles" id="summaryTiles"></div>
     <div class="group" id="menuList"></div>
     <p class="group-note">A → B → C の順に、行く日に次のメニューを実施します。</p>
@@ -686,7 +701,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
       </span>
     </div>
     <p class="group-foot" id="historyHint" style="margin:0 0 var(--s3)">
-      種目名をタップすると、その種目だけの記録と推移を見られます。
+      日付をタップすると中身を開きます。種目名をタップすると、その種目だけの記録と推移を見られます。
     </p>
     <div id="logList"></div>
   </section>
@@ -1424,6 +1439,14 @@ function renderHome() {
   }
 
   drawSummaryTiles(logs);
+
+  // 次にやるメニューを、いちばん押しやすい大きなボタンで出す（続きの入力があるときはそちらを優先）
+  const start = document.getElementById("startNext");
+  start.hidden = draftHasInput(draft);
+  start.innerHTML = '<b>メニュー' + next + 'を始める</b>' +
+    '<span>' + MENUS[next].title + ' · ' + MENUS[next].exercises.length + '種目</span>';
+  start.onclick = () => renderWorkout(next);
+
   goTo({ s: "home" });
   showScreen("home", "筋トレ記録");
 }
@@ -1487,7 +1510,27 @@ function drawSummaryTiles(logs) {
       '<div class="label">前回</div>' +
       '<div class="value">' + (daysAgo === 0 ? "今日" : daysAgo + '<small>日前</small>') + '</div>' +
       '<div class="foot">' + formatDate(last.date) + ' メニュー' + last.menu + '</div>' +
+    '</div>' +
+    '<div class="tile" style="grid-column:1/-1">' +
+      '<div class="label">直近2週間</div>' +
+      '<div class="week-strip">' + stripHTML(logs) + '</div>' +
     '</div>';
+}
+
+// 直近14日を1マスずつ並べ、行った日はメニューの文字で埋める（右端が今日）
+function stripHTML(logs) {
+  const byDate = {};
+  for (const l of logs) if (!byDate[l.date]) byDate[l.date] = l.menu;
+  const today = new Date(todayString() + "T00:00:00");
+  let out = "";
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const menu = byDate[key];
+    out += '<i class="' + (menu ? "on" : "") + (i === 0 ? " today" : "") + '" title="' + formatDate(key) + '">' +
+           (menu || "") + '</i>';
+  }
+  return out;
 }
 
 // ===== データの書き出し・読み込み =====================================
@@ -1891,7 +1934,7 @@ function drawExercises() {
         // まだ入力が無いときは、自己ベストだけ出しておく
         if (pb) {
           est.hidden = false;
-          est.innerHTML = "自己ベスト <b>" + pb.value + "kg</b>" +
+          est.innerHTML = "自己ベスト（推定1RM） <b>" + pb.value + "kg</b>" +
             "（" + formatDate(pb.date) + " " + pb.weight + "kg×" + pb.reps + "）";
         } else {
           est.hidden = true;
@@ -1981,14 +2024,14 @@ function drawExercises() {
         rField.className = "f r";
         const r = document.createElement("input");
         r.type = "number"; r.inputMode = "numeric"; r.min = "0";
-        r.placeholder = "回数"; r.value = set.reps;
+        r.placeholder = "–"; r.value = set.reps;
         r.oninput = () => {
           set.reps = r.value;
           updateHint(); updateEstimate(); updateDone(); updateProgress();
         };
         rField.appendChild(r);
         const rUnit = document.createElement("span");
-        rUnit.className = "unit"; rUnit.textContent = "回";
+        rUnit.className = "unit"; rUnit.textContent = "rep";
         rField.appendChild(rUnit);
         row.appendChild(rField);
 
@@ -2351,6 +2394,7 @@ photoDelete.onclick = () => {
 
 // ===== 履歴画面 =======================================================
 let historyFilter = "all";   // "all" / "A" / "B" / "C"
+const openLogIds = new Set();   // 履歴で中身を開いている記録（最初は一番新しい1件だけ開く）
 const historyFilterEl = document.getElementById("historyFilter");
 for (const btn of historyFilterEl.children) {
   btn.onclick = () => { historyFilter = btn.dataset.hf; renderHistory(); };
@@ -2361,6 +2405,7 @@ function renderHistory() {
   const container = document.getElementById("logList");
   container.innerHTML = "";
   const allLogs = sortedLogs();
+  if (openLogIds.size === 0 && allLogs[0]) openLogIds.add(allLogs[0].id);
   const logs = historyFilter === "all" ? allLogs : allLogs.filter(l => l.menu === historyFilter);
 
   for (const btn of historyFilterEl.children) {
@@ -2396,13 +2441,26 @@ function renderHistory() {
     }
 
     const card = document.createElement("div");
-    card.className = "card";
+    card.className = "card log-card" + (openLogIds.has(log.id) ? " open" : "");
 
+    // 見出し：日付・メニューと、時刻・種目数・総重量。タップで中身を開閉する
     const head = document.createElement("div");
     head.className = "log-head";
+    const time = formatTime(log.savedAt);
+    const editedTime = formatTime(log.editedAt);
+    const meta = [
+      time ? time + (editedTime ? "（編集 " + editedTime + "）" : "") : "",
+      log.exercises.length + "種目",
+      totalVolume(log.exercises).toLocaleString() + "kg"
+    ].filter(Boolean).join(" · ");
     head.innerHTML =
-      '<b>' + formatDate(log.date) + ' メニュー' + log.menu + '</b>' +
-      '<span class="vol">' + totalVolume(log.exercises).toLocaleString() + 'kg</span>';
+      '<span class="t"><b>' + formatDate(log.date) + ' メニュー' + log.menu + '</b>' +
+      '<span class="log-time">' + meta + '</span></span>';
+    head.onclick = e => {
+      if (e.target.closest("button")) return;
+      const open = card.classList.toggle("open");
+      if (open) openLogIds.add(log.id); else openLogIds.delete(log.id);
+    };
 
     // 編集：内容を直して保存し直す（間違えて保存してしまったときの修正用）
     const edit = document.createElement("button");
@@ -2426,16 +2484,8 @@ function renderHistory() {
       renderHistory();
     };
     head.appendChild(del);
+    head.insertAdjacentHTML("beforeend", '<span class="log-chev">' + icon("chev") + '</span>');
     card.appendChild(head);
-
-    const time = formatTime(log.savedAt);
-    const editedTime = formatTime(log.editedAt);
-    if (time) {
-      const timeLine = document.createElement("div");
-      timeLine.className = "log-time";
-      timeLine.textContent = time + (editedTime ? "（編集 " + editedTime + "）" : "");
-      card.appendChild(timeLine);
-    }
 
     const body = document.createElement("div");
     body.className = "log-body";
@@ -2469,7 +2519,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-29.7";
+const APP_VERSION = "2026-10-29.8";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
