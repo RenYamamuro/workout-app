@@ -346,19 +346,20 @@ button.start-btn span { font-size: var(--t-sm); opacity: .85; font-weight: 500; 
 :root {
   --m1-a: #ff8176; --m1-b: #e8392e; --m1-c: #a81c16;
   --m2-a: #ffd0ca; --m2-b: #f7a198; --m2-c: #e07a6f;
+  --m3-a: #ffa69d; --m3-b: #f26a5f; --m3-c: #cc4a40;
   --m0-a: color-mix(in srgb, var(--ink-3) 20%, var(--panel));
   --m0-c: color-mix(in srgb, var(--ink-3) 36%, var(--panel));
   --mb: color-mix(in srgb, var(--ink-3) 22%, var(--panel));
 }
 :root[data-theme="dark"] {
   --m1-a: #ff7d72; --m1-b: #e5483c; --m1-c: #a8261f;
-  --m2-a: #9a5650; --m2-b: #7e403b; --m2-c: #5f2f2b;
+  --m2-a: #9a5650; --m2-b: #7e403b; --m2-c: #5f2f2b; --m3-a: #d06a61; --m3-b: #b44c43; --m3-c: #86342d;
   --m0-a: #6a6a71; --m0-c: #4c4c52; --mb: #55555b;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --m1-a: #ff7d72; --m1-b: #e5483c; --m1-c: #a8261f;
-    --m2-a: #9a5650; --m2-b: #7e403b; --m2-c: #5f2f2b;
+    --m2-a: #9a5650; --m2-b: #7e403b; --m2-c: #5f2f2b; --m3-a: #d06a61; --m3-b: #b44c43; --m3-c: #86342d;
     --m0-a: #6a6a71; --m0-c: #4c4c52; --mb: #55555b;
   }
 }
@@ -367,6 +368,22 @@ button.start-btn span { font-size: var(--t-sm); opacity: .85; font-weight: 500; 
 .mm .m0 { fill: url(#mg-0); }
 .mm .m1 { fill: url(#mg-1); }
 .mm .m2 { fill: url(#mg-2); }
+.mm .m3 { fill: url(#mg-3); }
+/* ホームの「今週の部位」 */
+.week-map { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s2); }
+.week-map .views { display: flex; flex: none; }
+.week-map .views svg { width: 84px; height: 117px; display: block; }
+.week-map .views g[data-k] { cursor: pointer; }
+.week-map .views g.sel path { stroke: var(--ink); stroke-width: 1.2; }
+.week-map .info { flex: 1; min-width: 0; font-size: var(--t-sm); color: var(--ink-2); line-height: 1.6; }
+.week-map .info b { color: var(--ink); font-size: var(--t-md); }
+.heat-legend { display: flex; align-items: center; gap: 4px; margin-top: var(--s2); font-size: var(--t-xs); color: var(--ink-3); }
+.heat-legend i { width: 14px; height: 8px; border-radius: 3px; }
+.goal { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s1); }
+.goal svg { width: 48px; height: 48px; flex: none; transform: rotate(-90deg); }
+.goal .track { fill: none; stroke: var(--fill); stroke-width: 7; }
+.goal .bar { fill: none; stroke: var(--accent-btn); stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset .6s var(--ease); }
+.goal.done .bar { stroke: var(--good); }
 .illust.mmap { background: var(--fill); }
 .muscle-box { display: flex; align-items: center; gap: var(--s4); margin-top: var(--s4); padding: var(--s3) var(--s4);
   background: var(--fill); border-radius: var(--r-lg); }
@@ -578,6 +595,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
     <linearGradient id="mg-0" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--m0-a)"/><stop offset="1" style="stop-color:var(--m0-c)"/></linearGradient>
     <linearGradient id="mg-1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--m1-a)"/><stop offset=".55" style="stop-color:var(--m1-b)"/><stop offset="1" style="stop-color:var(--m1-c)"/></linearGradient>
     <linearGradient id="mg-2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--m2-a)"/><stop offset=".55" style="stop-color:var(--m2-b)"/><stop offset="1" style="stop-color:var(--m2-c)"/></linearGradient>
+    <linearGradient id="mg-3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--m3-a)"/><stop offset=".55" style="stop-color:var(--m3-b)"/><stop offset="1" style="stop-color:var(--m3-c)"/></linearGradient>
   </defs>
 </svg>
 
@@ -1131,16 +1149,18 @@ function mirrorPath(d) {
   let i = 0;
   return d.replace(/-?\d+(?:\.\d+)?/g, n => (i++ % 2 === 0 ? String(+(100 - n).toFixed(1)) : n));
 }
+// info は {p, s}（種目の主・補助）か、筋肉名 → クラス名を返す関数（ホームの今週の部位）
 function muscleSVG(view, info, box) {
   const both = d => '<path d="' + d + '"/><path d="' + mirrorPath(d) + '"/>';
-  const wrap = (cls, d) => '<g class="' + cls + '">' + both(d) + '</g>';
+  const wrap = (cls, d, key) => '<g class="' + cls + '" data-k="' + key + '">' + both(d) + '</g>';
   let out = '<svg class="mm" viewBox="' + (box || "14 0 72 100") + '" aria-hidden="true">';
   out += '<g class="b"><circle cx="50" cy="9" r="6.2"/><rect x="46" y="13" width="8" height="7" rx="2"/>' +
          BODY_BASE.map(both).join("") + '</g>';
   const paths = MUSCLE_PATHS[view];
   for (const key in paths) {
-    const state = info.p.includes(key) ? "m1" : info.s.includes(key) ? "m2" : "m0";
-    out += wrap(state, paths[key]);
+    const state = typeof info === "function" ? info(key)
+      : info.p.includes(key) ? "m1" : info.s.includes(key) ? "m2" : "m0";
+    out += wrap(state, paths[key], key);
   }
   return out + '</svg>';
 }
@@ -1491,20 +1511,27 @@ function drawSummaryTiles(logs) {
     return;
   }
 
-  // 直近30日の回数と、前回の内容
-  const since = new Date();
-  since.setDate(since.getDate() - 30);
-  const recent = logs.filter(l => new Date(l.date + "T00:00:00") >= since).length;
+  // 今週（月曜はじまり）の回数と、前回の内容
+  const weekStart = startOfWeek();
+  const thisWeek = logs.filter(l => l.date >= weekStart);
+  const done = thisWeek.length;
   const last = logs[0];
   const daysAgo = Math.round(
     (new Date(todayString() + "T00:00:00") - new Date(last.date + "T00:00:00")) / 86400000
   );
+  const C = 2 * Math.PI * 20;
+  const ratio = Math.min(1, done / WEEKLY_GOAL);
 
   box.innerHTML =
     '<div class="tile">' +
-      '<div class="label">直近30日</div>' +
-      '<div class="value">' + recent + '<small>回</small></div>' +
-      '<div class="foot">全' + logs.length + '回の記録</div>' +
+      '<div class="label">今週の目標</div>' +
+      '<div class="goal' + (done >= WEEKLY_GOAL ? " done" : "") + '">' +
+        '<svg viewBox="0 0 48 48" aria-hidden="true"><circle class="track" cx="24" cy="24" r="20"/>' +
+        '<circle class="bar" cx="24" cy="24" r="20" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' +
+          (C * (1 - ratio)).toFixed(1) + '"' + (done ? "" : ' style="opacity:0"') + '/></svg>' +
+        '<div><div class="value" style="margin:0">' + done + '<small>/ ' + WEEKLY_GOAL + '回</small></div>' +
+        '<div class="foot">' + (done >= WEEKLY_GOAL ? "達成！" : "あと" + (WEEKLY_GOAL - done) + "回") + '</div></div>' +
+      '</div>' +
     '</div>' +
     '<div class="tile">' +
       '<div class="label">前回</div>' +
@@ -1512,9 +1539,79 @@ function drawSummaryTiles(logs) {
       '<div class="foot">' + formatDate(last.date) + ' メニュー' + last.menu + '</div>' +
     '</div>' +
     '<div class="tile" style="grid-column:1/-1">' +
+      '<div class="label">今週の部位（セット数）</div>' +
+      weekMapHTML(thisWeek) +
+    '</div>' +
+    '<div class="tile" style="grid-column:1/-1">' +
       '<div class="label">直近2週間</div>' +
       '<div class="week-strip">' + stripHTML(logs) + '</div>' +
     '</div>';
+  bindWeekMap(box, thisWeek);
+}
+
+const WEEKLY_GOAL = 3;            // 週の目標回数
+const SET_TARGET = [10, 20];      // 1部位あたりの週の目安セット数
+
+function startOfWeek() {
+  const d = new Date(todayString() + "T00:00:00");
+  d.setDate(d.getDate() - (d.getDay() + 6) % 7);   // 月曜まで戻す
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+
+// 筋肉ごとの今週のセット数。主に効く種目は1セット、補助は0.5セットとして数える（Fitbod と同じ数え方）
+function weeklyMuscleSets(logs) {
+  const sets = {};
+  for (const l of logs) {
+    for (const ex of l.exercises) {
+      const info = MUSCLES[ex.name];
+      if (!info) continue;
+      const n = ex.sets.filter(st => Number(st.reps) > 0).length;
+      for (const k of info.p) sets[k] = (sets[k] || 0) + n;
+      for (const k of info.s) sets[k] = (sets[k] || 0) + n * 0.5;
+    }
+  }
+  return sets;
+}
+function heatClass(n) {
+  if (!n) return "m0";
+  if (n < SET_TARGET[0] / 2) return "m2";
+  if (n < SET_TARGET[0]) return "m3";
+  return "m1";
+}
+function weekMapHTML(weekLogs) {
+  const sets = weeklyMuscleSets(weekLogs);
+  const cls = k => heatClass(sets[k]);
+  return '<div class="week-map">' +
+      '<div class="views">' + muscleSVG("front", cls) + muscleSVG("back", cls) + '</div>' +
+      '<div class="info" id="weekMapInfo">' + weekMapSummary(sets) + '</div>' +
+    '</div>' +
+    '<div class="heat-legend">0' +
+      '<i style="background:var(--m0-a)"></i><i style="background:var(--m2-b)"></i>' +
+      '<i style="background:var(--m3-b)"></i><i style="background:var(--m1-b)"></i>' +
+      SET_TARGET[0] + 'セット以上</div>';
+}
+function weekMapSummary(sets) {
+  const keys = Object.keys(sets);
+  if (keys.length === 0) return "今週はまだ記録がありません。筋肉をタップするとセット数が出ます。";
+  const reached = keys.filter(k => sets[k] >= SET_TARGET[0]).length;
+  return '<b>' + reached + '部位</b>が目安の' + SET_TARGET[0] + 'セットに到達。<br>筋肉をタップするとセット数が出ます。';
+}
+function bindWeekMap(box, weekLogs) {
+  const info = box.querySelector("#weekMapInfo");
+  if (!info) return;
+  const sets = weeklyMuscleSets(weekLogs);
+  box.querySelectorAll(".week-map g[data-k]").forEach(g => {
+    g.onclick = () => {
+      const k = g.dataset.k;
+      box.querySelectorAll(".week-map g.sel").forEach(x => x.classList.remove("sel"));
+      box.querySelectorAll('.week-map g[data-k="' + k + '"]').forEach(x => x.classList.add("sel"));
+      const n = sets[k] || 0;
+      info.innerHTML = '<b>' + MUSCLE_NAMES[k] + '</b><br>' + (Math.round(n * 10) / 10) + 'セット' +
+        '（目安 ' + SET_TARGET[0] + '〜' + SET_TARGET[1] + '）' +
+        (n >= SET_TARGET[1] ? '<br>多め' : n >= SET_TARGET[0] ? '<br>十分' : '');
+    };
+  });
 }
 
 // 直近14日を1マスずつ並べ、行った日はメニューの文字で埋める（右端が今日）
@@ -2519,7 +2616,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-29.10";
+const APP_VERSION = "2026-10-29.11";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
