@@ -327,6 +327,42 @@ body[data-screen="workout"] .lt { display: none; }
 .illust .s { stroke: var(--ink-3); stroke-width: 3; }
 .illust .p { stroke: var(--ink); stroke-width: 3; }
 .illust .m { stroke: var(--accent); stroke-width: 4; }
+
+/* 筋肉マップ：効く筋肉を赤、補助を薄い赤で塗る（グラデーションで立体感を出す） */
+:root {
+  --m1-a: #ff8176; --m1-b: #e8392e; --m1-c: #a81c16;
+  --m2-a: #ffd0ca; --m2-b: #f7a198; --m2-c: #e07a6f;
+  --m0-a: color-mix(in srgb, var(--ink-3) 20%, var(--panel));
+  --m0-c: color-mix(in srgb, var(--ink-3) 36%, var(--panel));
+  --mb: color-mix(in srgb, var(--ink-3) 22%, var(--panel));
+}
+:root[data-theme="dark"] {
+  --m1-a: #ff7d72; --m1-b: #e5483c; --m1-c: #a8261f;
+  --m2-a: #9a5650; --m2-b: #7e403b; --m2-c: #5f2f2b;
+  --m0-a: #3a3a3e; --m0-c: #2a2a2d; --mb: #2f2f33;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --m1-a: #ff7d72; --m1-b: #e5483c; --m1-c: #a8261f;
+    --m2-a: #9a5650; --m2-b: #7e403b; --m2-c: #5f2f2b;
+    --m0-a: #3a3a3e; --m0-c: #2a2a2d; --mb: #2f2f33;
+  }
+}
+.mm path, .mm circle, .mm rect { stroke: var(--panel); stroke-width: .8; stroke-linejoin: round; }
+.mm .b  { fill: var(--mb); }
+.mm .m0 { fill: url(#mg-0); }
+.mm .m1 { fill: url(#mg-1); }
+.mm .m2 { fill: url(#mg-2); }
+.illust.mmap { background: var(--fill); }
+.muscle-box { display: flex; align-items: center; gap: var(--s4); margin-top: var(--s4); padding: var(--s3) var(--s4);
+  background: var(--fill); border-radius: var(--r-lg); }
+.muscle-box .views { display: flex; gap: var(--s2); flex: none; }
+.muscle-box .views svg { width: 78px; height: 108px; display: block; }
+.muscle-box .legend { font-size: var(--t-sm); color: var(--ink-2); line-height: 1.7; min-width: 0; }
+.muscle-box .legend b { font-weight: 600; color: var(--ink); }
+.muscle-box .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.muscle-box .dot.p { background: var(--m1-b); }
+.muscle-box .dot.s { background: var(--m2-b); }
 .ex-head { display: flex; align-items: baseline; gap: var(--s2); }
 .ex-head b { font-size: 17px; font-weight: 600; }
 .ex-head .done { color: var(--good); flex: none; display: inline-flex; }
@@ -516,6 +552,15 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
 </head>
 <body>
 
+<!-- 筋肉マップ用のグラデーション（display:none にすると参照できないので、大きさ0で置く） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="mg-0" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--m0-a)"/><stop offset="1" style="stop-color:var(--m0-c)"/></linearGradient>
+    <linearGradient id="mg-1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--m1-a)"/><stop offset=".55" style="stop-color:var(--m1-b)"/><stop offset="1" style="stop-color:var(--m1-c)"/></linearGradient>
+    <linearGradient id="mg-2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--m2-a)"/><stop offset=".55" style="stop-color:var(--m2-b)"/><stop offset="1" style="stop-color:var(--m2-c)"/></linearGradient>
+  </defs>
+</svg>
+
 <header class="toolbar">
   <button id="backBtn" class="tb-btn" hidden aria-label="戻る">
     <svg class="ic" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg>戻る
@@ -674,6 +719,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
       <div class="illust big" id="modalIllust"></div>
       <p class="muted" id="modalNote"></p>
     </div>
+    <div class="muscle-box" id="modalMuscles" hidden></div>
     <div class="hist" id="modalHistory"></div>
     <div class="row" style="margin-top:14px">
       <label class="filebtn">
@@ -990,6 +1036,100 @@ function findLastRecord(exerciseName) {
   return null;
 }
 // 写真があればそれを、なければ図解を返す
+// ===== 筋肉マップ ======================================================
+// 左半身だけ描いて、右半身は x を 100 - x に反転して作る（M/L/Q/Z の絶対座標だけで書くこと）
+const MUSCLE_NAMES = {
+  chest: "大胸筋", "delt-front": "三角筋（前）", "delt-side": "三角筋（横）", "delt-rear": "三角筋（後）",
+  biceps: "上腕二頭筋", triceps: "上腕三頭筋", forearm: "前腕", abs: "腹直筋", obliques: "腹斜筋",
+  quads: "大腿四頭筋", adductors: "内転筋", calves: "下腿", traps: "僧帽筋", lats: "広背筋",
+  lowerback: "脊柱起立筋", glutes: "大臀筋", hamstrings: "ハムストリングス",
+  midback: "僧帽筋中部・菱形筋", abductors: "中臀筋"
+};
+const BODY_BASE = [
+  "M37 20 L50 17 L50 57 L39 57 L38 38 Z",
+  "M37 21 L30 23 L26 32 L24 45 L22 60 L23 66 L29 66 L30 58 L33 45 L36 33 L38 28 Z",
+  "M37 55 L50 55 L49.5 80 L47.5 97 L40.5 97 L39 80 Z"
+];
+const ARM_UPPER = "M28.5 33 Q33 35 37.5 33 L36 44 Q32 46 29 44.5 Z";
+const MUSCLE_PATHS = {
+  front: {
+    traps: "M50 17.5 L43.5 19 Q40 20.5 38 21.5 L41 23.2 Q45 22.5 50 22.8 Z",
+    "delt-front": "M40 23.5 Q36 20.5 33 22.5 L33 30 Q36 33 39.5 31 Q38.5 27 40 23.5 Z",
+    "delt-side": "M32.5 22.7 Q29 22.5 27.5 26 Q26.5 30 28 32 Q30.5 33 33 31 Z",
+    chest: "M50 24 Q44 22 40.5 24.5 Q37.5 30 38.5 35.5 Q43.5 40 50 37 Z",
+    biceps: ARM_UPPER,
+    forearm: "M29 45.5 Q32.5 47 36 45.5 L33.5 62 Q30 63.5 27.5 62 Z",
+    abs: "M50 38.5 L44.5 38.5 L44.5 52.5 Q47 55 50 55 Z",
+    obliques: "M43.5 38.5 L39 36.5 Q37.5 44 39 52 Q41 54 43.5 52.5 Z",
+    quads: "M37.5 57 L47.8 57 Q48 68 46.8 78 Q42.5 81 39 79 Q36.5 68 37.5 57 Z",
+    adductors: "M48.6 58 L50 58 L50 70 L47.6 76 Q47.2 67 48.6 58 Z",
+    calves: "M39.5 82 Q43 83.5 46.5 82 L45.5 96 L41 96 Z"
+  },
+  back: {
+    traps: "M50 16 Q44 18.5 38 21.5 Q39 24 41.5 25.5 L50 28.5 Z",
+    midback: "M41.5 25.5 L50 28.5 L50 40 L45 34 Q42.5 30 41.5 25.5 Z",
+    "delt-rear": "M38 22 Q35 20.5 33 22.5 L33 30 Q36 33 38.5 31 Q39 27 38 22 Z",
+    "delt-side": "M32.5 22.7 Q29 22.5 27.5 26 Q26.5 30 28 32 Q30.5 33 33 31 Z",
+    triceps: ARM_UPPER,
+    forearm: "M29 45.5 Q32.5 47 36 45.5 L33.5 62 Q30 63.5 27.5 62 Z",
+    lats: "M38.5 31.5 Q44 34 50 39 L50 43 L43.2 45 Q42.8 49 40.5 49.5 Q37.5 41 38.5 31.5 Z",
+    lowerback: "M50 44 L43.5 46 L43.5 55 L50 55 Z",
+    glutes: "M37.5 55.5 L50 55.5 L50 66 Q43 69.5 38 65.5 Q36.5 61 37.5 55.5 Z",
+    abductors: "M37.5 55.5 L44 55.5 L44 65 Q39.5 66.5 37.2 62 Q36.6 58.5 37.5 55.5 Z",
+    hamstrings: "M37.8 67 Q43.5 71 50 67.5 L50 76 L47.3 79.5 Q43 81.5 39.2 79.5 Q36.8 73 37.8 67 Z",
+    calves: "M39 82 Q43 83.5 47 82 L46 96 L41 96 Z"
+  }
+};
+// view: 見せる向き / box: サムネで切り出す範囲 / p: 主に効く / s: 補助的に効く
+const MUSCLES = {
+  "スミスマシンベンチプレス": { view: "front", box: "18 3 64 64", p: ["chest"], s: ["delt-front", "triceps"] },
+  "アイソラテラルショルダープレス": { view: "front", box: "18 3 64 64", p: ["delt-front", "delt-side"], s: ["triceps", "traps"] },
+  "チェストプレス": { view: "front", box: "18 3 64 64", p: ["chest"], s: ["delt-front", "triceps"] },
+  "アシストディップ": { view: "front", box: "18 3 64 64", p: ["chest", "triceps"], s: ["delt-front"] },
+  "リアデルトフライ": { view: "back", box: "18 3 64 64", p: ["delt-rear"], s: ["midback", "traps"] },
+  "ペクトラルフライ": { view: "front", box: "18 3 64 64", p: ["chest"], s: ["delt-front"] },
+  "レッグエクステンション": { view: "front", box: "18 36 64 64", p: ["quads"], s: [] },
+  "ケーブルプレスダウン": { view: "back", box: "18 3 64 64", p: ["triceps"], s: ["forearm"] },
+  "アブドミナルクランチ": { view: "front", box: "18 22 64 64", p: ["abs"], s: ["obliques"] },
+  "ラットプルダウン": { view: "back", box: "18 3 64 64", p: ["lats"], s: ["midback", "delt-rear", "biceps"] },
+  "ローロー": { view: "back", box: "18 3 64 64", p: ["midback", "lats"], s: ["delt-rear", "biceps"] },
+  "アシストチン": { view: "back", box: "18 3 64 64", p: ["lats"], s: ["midback", "delt-rear", "biceps"] },
+  "レッグカール": { view: "back", box: "18 36 64 64", p: ["hamstrings"], s: ["calves"] },
+  "MTSバイセップカール": { view: "front", box: "18 3 64 64", p: ["biceps"], s: ["forearm"] },
+  "バックエクステンション": { view: "back", box: "18 30 64 64", p: ["lowerback"], s: ["glutes", "hamstrings"] },
+  "V-スクワット": { view: "front", box: "18 36 64 64", p: ["quads"], s: ["glutes", "hamstrings", "adductors"] },
+  "シーテッドレッグプレス": { view: "front", box: "18 36 64 64", p: ["quads"], s: ["glutes", "hamstrings", "adductors"] },
+  "ヒップ＆グルート": { view: "back", box: "18 36 64 64", p: ["glutes"], s: ["hamstrings"] },
+  "ヒップアブダクション": { view: "back", box: "18 36 64 64", p: ["abductors"], s: ["glutes"] },
+  "アイソラテラルハイロー": { view: "back", box: "18 3 64 64", p: ["midback", "lats"], s: ["delt-rear", "biceps"] },
+  "ラットレイズ": { view: "front", box: "18 3 64 64", p: ["delt-side"], s: ["delt-front", "traps"] },
+  "トーソローテーション": { view: "front", box: "18 22 64 64", p: ["obliques"], s: ["abs"] }
+};
+
+function mirrorPath(d) {
+  let i = 0;
+  return d.replace(/-?\d+(?:\.\d+)?/g, n => (i++ % 2 === 0 ? String(+(100 - n).toFixed(1)) : n));
+}
+function muscleSVG(view, info, box) {
+  const both = d => '<path d="' + d + '"/><path d="' + mirrorPath(d) + '"/>';
+  const wrap = (cls, d) => '<g class="' + cls + '">' + both(d) + '</g>';
+  let out = '<svg class="mm" viewBox="' + (box || "14 0 72 100") + '" aria-hidden="true">';
+  out += '<g class="b"><circle cx="50" cy="9" r="6.2"/><rect x="46" y="13" width="8" height="7" rx="2"/>' +
+         BODY_BASE.map(both).join("") + '</g>';
+  const paths = MUSCLE_PATHS[view];
+  for (const key in paths) {
+    const state = info.p.includes(key) ? "m1" : info.s.includes(key) ? "m2" : "m0";
+    out += wrap(state, paths[key]);
+  }
+  return out + '</svg>';
+}
+// 一覧のサムネ：写真があれば写真、筋肉マップがある種目はマップ、なければ器具の図
+function thumbHTML(name, photos) {
+  const info = MUSCLES[name];
+  if (photos[name] || !info) return artHTML(name, photos);
+  return muscleSVG(info.view, info, info.box);
+}
+
 function artHTML(name, photos) {
   const photo = photos[name];
   if (photo) return '<img src="' + photo + '" alt="' + name + '">';
@@ -1656,7 +1796,7 @@ function drawExercises() {
     const art = document.createElement("button");
     art.className = "illust";
     art.title = "タップで拡大 / 写真を登録";
-    art.innerHTML = artHTML(def.name, photos);
+    art.innerHTML = thumbHTML(def.name, photos);
     art.onclick = () => openArtModal(def);
     top.appendChild(art);
 
@@ -1990,7 +2130,23 @@ function drawModal() {
     : (modalExercise.note ? modalExercise.note + " / " : "") +
       "ジムで実物の写真を撮って登録すると、この図の代わりに表示されます。";
   photoDelete.hidden = !hasPhoto;
+  drawModalMuscles();
   drawModalHistory();
+}
+
+// 効く筋肉：前面と背面を並べて、主・補助の名前を添える
+function drawModalMuscles() {
+  const box = document.getElementById("modalMuscles");
+  const info = MUSCLES[modalExercise.name];
+  box.hidden = !info;
+  if (!info) return;
+  const names = keys => keys.map(k => MUSCLE_NAMES[k]).join("・");
+  box.innerHTML =
+    '<div class="views">' + muscleSVG("front", info) + muscleSVG("back", info) + '</div>' +
+    '<div class="legend">' +
+      '<div><span class="dot p"></span><b>主</b> ' + names(info.p) + '</div>' +
+      (info.s.length ? '<div><span class="dot s"></span><b>補助</b> ' + names(info.s) + '</div>' : '') +
+    '</div>';
 }
 
 const MAX_HISTORY_ROWS = 30;
@@ -2304,7 +2460,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-29.2";
+const APP_VERSION = "2026-10-29.3";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
