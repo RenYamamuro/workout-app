@@ -248,6 +248,9 @@ body[data-screen="workout"] .lt { display: none; }
     border-radius: var(--r-pill); padding: var(--s1);
   }
   .tabbar .tabs { display: flex; }
+  /* 内容が短いホームだけ、iPhone のホーム画面アプリで固定バーが約59px上に浮く。
+     常に1pxだけスクロールできる高さにして、他の画面と同じ挙動にそろえる */
+  body { min-height: calc(100vh + 1px); min-height: calc(100dvh + 1px); }
   .tab {
     flex: 1; min-width: 0; flex-direction: column; justify-content: center; gap: 2px;
     padding: 6px 2px 5px; border-radius: var(--r-pill); font-size: 10px;
@@ -462,7 +465,8 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
 .log-time { padding: 0 var(--s4); font-size: var(--t-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .log-body { margin-top: var(--s2); font-variant-numeric: tabular-nums; }
 .log-body > div { display: flex; align-items: center; gap: var(--s2); min-height: 48px; padding: 0 var(--s4); border-top: 1px solid var(--line); font-size: var(--t-md); color: var(--ink-2); }
-.log-body button { flex: 1; min-width: 0; text-align: left; white-space: normal; font-size: var(--t-md); font-weight: 500; color: var(--ink); }
+.log-body .sets { flex: 1 1 0; min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.log-body button { flex: 0 1 auto; max-width: 55%; text-align: left; white-space: normal; font-size: var(--t-md); font-weight: 500; color: var(--ink); }
 .log-body button::after { content: "›"; color: var(--ink-3); margin-left: 6px; font-size: 18px; line-height: 1; }
 .log-memo { padding: var(--s3) var(--s4); border-top: 1px solid var(--line); font-size: var(--t-md); color: var(--ink-3); }
 .log-del { flex: none; color: var(--ink-3); padding: 14px 10px; margin: -14px -4px -14px -6px; display: inline-flex; align-items: center; border-radius: var(--r-pill); }
@@ -2442,7 +2446,10 @@ function renderHistory() {
       name.title = "この種目の記録を見る";
       name.onclick = () => openArtModal(findExerciseDef(ex.name));
       line.appendChild(name);
-      line.appendChild(document.createTextNode(" " + formatSets(ex.sets)));
+      const sets = document.createElement("span");
+      sets.className = "sets";
+      sets.textContent = formatSets(ex.sets);
+      line.appendChild(sets);
       body.appendChild(line);
     }
     card.appendChild(body);
@@ -2462,7 +2469,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-29.5";
+const APP_VERSION = "2026-10-29.6";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
