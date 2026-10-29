@@ -244,7 +244,7 @@ body[data-screen="workout"] .lt { display: none; }
   .tabbar {
     left: var(--s4); right: var(--s4);
     /* ホームインジケータ（34px）の分を丸ごと避けると一段浮いて見えるので、バーのすぐ下に収まるまで下げる */
-    bottom: max(var(--s2), calc(env(safe-area-inset-bottom) - 20px));
+    bottom: max(var(--s4), calc(env(safe-area-inset-bottom) - 18px));
     border-radius: var(--r-pill); padding: var(--s1);
   }
   .tabbar .tabs { display: flex; }
@@ -2462,7 +2462,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-29.4";
+const APP_VERSION = "2026-10-29.5";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
