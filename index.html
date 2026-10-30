@@ -154,7 +154,8 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { -webkit-text-size-adjust: 100%; }
+/* ダブルタップでの拡大をなくす（＋/− の連打で拡大されないように）。2本指の拡大は残す */
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font-family: "JP Rounded", ui-rounded, "Nunito", "Zen Maru Gothic",
@@ -2966,7 +2967,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-30.2";
+const APP_VERSION = "2026-10-30.3";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
