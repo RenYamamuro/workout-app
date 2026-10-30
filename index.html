@@ -154,8 +154,10 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-/* ダブルタップでの拡大をなくす（＋/− の連打で拡大されないように）。2本指の拡大は残す */
-html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+/* ダブルタップでの拡大をなくす（＋/− の連打で拡大されないように）。2本指の拡大は残す。
+   touch-action は親から引き継がれないので、すべての要素に付ける（iOS は html だけでは効かないことがある） */
+html { -webkit-text-size-adjust: 100%; }
+*, *::before, *::after { touch-action: manipulation; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font-family: "JP Rounded", ui-rounded, "Nunito", "Zen Maru Gothic",
@@ -2967,7 +2969,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-30.3";
+const APP_VERSION = "2026-10-30.4";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
@@ -3058,6 +3060,21 @@ for (const btn of langSeg.children) {
     window.dispatchEvent(new Event("langchange"));
   };
 }
+
+// ===== ダブルタップでの拡大を止める ===================================
+// CSS の touch-action だけでは iOS のホーム画面アプリで少し拡大されることがあるので、
+// 短い間隔の2回目のタップは既定の動き（拡大）を止め、ボタンなら代わりにクリックを送る（連打を取りこぼさない）
+let lastTouchEnd = 0;
+document.addEventListener("touchend", e => {
+  const now = Date.now();
+  if (now - lastTouchEnd < 350 && e.changedTouches.length === 1 &&
+      !e.target.closest("input, textarea, select, [contenteditable]")) {
+    e.preventDefault();
+    const target = e.target.closest("button, label, a, [role=switch]");
+    if (target) target.click();
+  }
+  lastTouchEnd = now;
+}, { passive: false });
 
 // ===== 起動 ===========================================================
 applyLang(loadLangSetting());
