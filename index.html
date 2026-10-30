@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="fonts/zen.css">
+<link rel="stylesheet" href="fonts/mplus.css">
 <!-- iOS はホーム画面のアイコンを強くキャッシュするので、差し替えるときは
      ファイル名ごと変える（-v2）。サイズ指定つきも併記して確実に拾わせる -->
 <link rel="apple-touch-icon" href="icons/icon-180-v3.png">
@@ -30,7 +30,8 @@
    サブスク・固定費マネージャーと同じ指定（フォントのファイルも fonts/ にコピーしてある）。
    - 日本語：Apple 端末のヒラギノ丸ゴを、日本語の範囲だけに限定した別名で先に当てる。
    - 欧文・数字：Safari では ui-rounded（SF Pro Rounded）。対応しないブラウザは Nunito。
-   - Apple 以外：local() が見つからないので Nunito ＋ Zen Maru Gothic（fonts/zen.css）に落ちる。
+   - Apple 以外：local() が見つからないので Nunito ＋ M PLUS Rounded 1c（fonts/mplus.css）に落ちる。
+     M PLUS Rounded 1c は、かなの大きさと字幅がヒラギノ丸ゴに一番近い。
    ヒラギノ丸ゴは W4 しかないので 400 だけを宣言し、太字はブラウザの合成に任せる。 */
 @font-face {
   font-family: "JP Rounded";
@@ -160,7 +161,7 @@ html { -webkit-text-size-adjust: 100%; }
 *, *::before, *::after { touch-action: manipulation; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font-family: "JP Rounded", ui-rounded, "Nunito", "Zen Maru Gothic",
+  font-family: "JP Rounded", ui-rounded, "Nunito", "M PLUS Rounded 1c",
                "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", Meiryo,
                "Noto Sans JP", "Noto Sans CJK JP", system-ui, sans-serif;
   font-size: var(--t-md); line-height: 1.5; letter-spacing: normal;
@@ -3064,7 +3065,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-30.5";
+const APP_VERSION = "2026-10-30.6";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================

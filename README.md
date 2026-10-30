@@ -128,9 +128,10 @@ manifest は読み込まれない（機能そのものには影響しない）�
 （2026-10-29）。iOS 純正風の柔らかめの意匠で、アクセントだけアプリ固有のラベンダー。
 
 - **フォント** — 「Apple の端末ではヒラギノ丸ゴ／SF Pro Rounded、それ以外は同梱の
-  Nunito ＋ Zen Maru Gothic」。指定（`font-family` と `@font-face`）もファイル（`fonts/`）も
-  サブスク側からのコピー。Zen Maru Gothic は文字ごとに分割されていて（約7MB）、画面に出た文字を
-  含むファイルだけが読み込まれる。どちらも SIL Open Font License 1.1
+  Nunito ＋ M PLUS Rounded 1c」。指定と Nunito はサブスク側からのコピー。日本語は当初
+  Zen Maru Gothic だったが、かなの大きさと字幅がよりヒラギノ丸ゴに近い M PLUS Rounded 1c に
+  差し替えた（2026-10-30）。Google Fonts の分割をそのまま自己ホストしていて（約5.4MB）、
+  画面に出た文字を含むファイルだけが読み込まれる。どちらも SIL Open Font License 1.1
 - **色** — 灰色の地（`--bg`）に白い板（`--panel`）。線は半透明の灰。補助文字は 4.5:1 以上。
   トークン名・値はサブスク側と同一（`--accent` `#6b5dc8` など）
 - **形** — 角丸は `--r-sm` 10 / `--r-md` 14 / `--r-lg` 22 / `--r-sheet` 28 / `--r-pill`。
@@ -164,7 +165,7 @@ manifest は読み込まれない（機能そのものには影響しない）�
     `prefers-reduced-motion: reduce` の環境では全て無効になる
 - `manifest.json` — ホーム画面に追加したときの名前・アイコン・表示設定
 - `sw.js` — オフライン用の Service Worker（ネットワーク優先 + キャッシュ）
-- `fonts/` — サブスク管理アプリからコピーしたフォント（Nunito と Zen Maru Gothic の分割ファイル）
+- `fonts/` — フォント（サブスク管理アプリからコピーした Nunito と、Google Fonts から取得した M PLUS Rounded 1c の分割ファイル）
 - `firebase-sync.js` — クラウド同期（Firestore + Googleログイン）
 - `firestore.rules` — Firestore のセキュリティルール（Firebaseコンソールに貼る内容）
 - `icons/` — アプリアイコン（LIFT LOG）。濃紺 `#22224E`→`#0E0C1A` の地に紫の光、白いダンベル、
