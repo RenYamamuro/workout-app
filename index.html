@@ -330,6 +330,9 @@ button.start-btn span { font-size: var(--t-sm); opacity: .85; font-weight: 500; 
   font-style: normal; font-size: 10px; font-weight: 700; color: var(--accent-ink); }
 .week-strip i.on { background: var(--accent-btn); }
 .week-strip i.today { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.streak { display: flex; align-items: center; gap: 4px; margin-top: var(--s2); font-size: var(--t-xs); font-weight: 600; color: var(--ink-2); }
+.streak svg { width: 14px; height: 14px; flex: none; color: var(--warn); }
+.streak.on { color: var(--ink); }
 .next-tag { flex: none; font-size: var(--t-xs); font-weight: 600; color: var(--accent); background: var(--accent-wash); padding: 3px 10px; border-radius: var(--r-pill); }
 .group-note { margin: calc(-1 * var(--s2)) 0 var(--s5); padding: 0 var(--s4); font-size: var(--t-sm); color: var(--ink-3); }
 
@@ -443,6 +446,10 @@ body:not([data-screen="workout"]) .wo-bar { display: none; }
 .ex-head .target { margin-left: auto; font-size: var(--t-xs); color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .prev { margin-top: 2px; font-size: var(--t-sm); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .prev.none { color: var(--ink-3); font-size: var(--t-xs); }
+.plan { display: flex; align-items: flex-start; gap: 5px; margin-top: 4px; font-size: var(--t-xs); line-height: 1.4; color: var(--ink-2); }
+.plan svg { width: 13px; height: 13px; flex: none; margin-top: 1px; }
+.plan.up { color: var(--good); font-weight: 600; }
+.card.collapsed .plan { display: none; }
 
 .est { padding: var(--s3) var(--s4); border-top: 1px solid var(--line); font-size: var(--t-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .est b { color: var(--ink); font-size: var(--t-md); font-weight: 600; }
@@ -917,7 +924,14 @@ const EN = {
   "自己ベスト（推定1RM）": "Best (est. 1RM)", "推定1RM": "Est. 1RM", "自己ベスト": "Best",
   "（体重比 {r}倍）": " ({r}× body weight)", "自己ベスト更新（前 {v}kg）": "New best! (was {v}kg)",
   "※13回以上からの推定は誤差が大きめです": "※ Estimates from 13+ reps are less accurate",
-  "全セット完遂 ✓ 次回は 2.5〜5kg 上げてOK": "All sets done ✓ Add 2.5–5kg next time",
+  "全セット完遂 ✓": "All sets done ✓",
+  "全セット完遂 ✓ 次回は1段階上げた重量を入れておきます": "All sets done ✓ Next time starts one step heavier",
+  "全セット完遂 ✓ 次回は補助を減らした重量を入れておきます": "All sets done ✓ Next time starts with less assistance",
+  "前回と同じ{w}kgで、全セット{r}回を目指しましょう": "Stay at {w}kg and aim for {r} reps on every set",
+  "前回は全セット{r}回できたので、{a}→{w}kgに上げています": "You hit {r} reps on every set last time, so it's up {a}→{w}kg",
+  "前回は全セット{r}回できたので、補助を{a}→{w}kgに減らしています": "You hit {r} reps on every set last time, so assistance is down {a}→{w}kg",
+  "{n}週連続で達成！": "{n}-week streak!",
+  "{n}週連続中": "{n}-week streak",
   "重量を下げる": "Decrease weight", "重量を上げる": "Increase weight", "重量": "Weight",
   "このセットを削除": "Delete this set", "{i}セット目（{w}kg × {r}回）を削除しますか？": "Delete set {i} ({w}kg × {r})?",
   "セットを追加": "Add set", "刻み {s}kg": "Step {s}kg", "タップで切り替え": "Tap to change",
@@ -1569,7 +1583,10 @@ const ICONS = {
   check: '<path d="M3.2 8.4 6.3 11.5 12.8 4.9"/>',
   chev:  '<path d="M4 6.2 8 10.2 12 6.2"/>',
   trash: '<path d="M2.8 4.4h10.4M6.4 4.4V2.8h3.2v1.6M4.4 4.4l.6 8.8h6l.6-8.8"/>',
-  edit:  '<path d="M9.4 3.4 12.6 6.6 5 14.2H1.8V11z"/><path d="M8 4.8 11.2 8"/>'
+  edit:  '<path d="M9.4 3.4 12.6 6.6 5 14.2H1.8V11z"/><path d="M8 4.8 11.2 8"/>',
+  up:    '<path d="M8 13V3.4M4 7.2 8 3.2l4 4"/>',
+  target: '<circle cx="8" cy="8" r="5.6"/><circle cx="8" cy="8" r="2.2"/>',
+  flame: '<path d="M8 14.2c2.6 0 4.4-1.8 4.4-4.3 0-2.6-2-4.2-2.9-6.9-.9 1.3-1.2 2.4-1.2 3.4C7.5 5.3 6.6 4 6.4 2 4.6 3.7 3.6 6.4 3.6 9.9c0 2.5 1.8 4.3 4.4 4.3z"/>'
 };
 function icon(name) { return '<svg ' + IC_ATTR + '>' + ICONS[name] + '</svg>'; }
 
@@ -1627,7 +1644,26 @@ function showScreen(name, title) {
 
   if (!same) replay(screens[name], "view-in");
   currentScreen = name;
+  updateWakeLock();
 }
+
+// 記録画面を開いている間は、画面が自動で暗くならないようにする（Screen Wake Lock API）。
+// アプリが裏に回ると OS が解除するので、戻ってきたときに取り直す
+let wakeLock = null;
+async function updateWakeLock() {
+  if (!("wakeLock" in navigator)) return;
+  const want = currentScreen === "workout" && document.visibilityState === "visible";
+  try {
+    if (want && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } else if (!want && wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch (e) { wakeLock = null; }
+}
+document.addEventListener("visibilitychange", updateWakeLock);
 
 // 大きいタイトルが画面の外に出たら、ナビゲーションバーを材質つきにして小さいタイトルを出す
 let lastScrollY = 0;
@@ -1809,6 +1845,7 @@ function drawSummaryTiles(logs) {
         '<div class="foot">' + (done >= WEEKLY_GOAL ? t("達成！") : t("あと{n}回", { n: WEEKLY_GOAL - done })) + '</div></div>' +
       '</div>' +
       '<div class="week-strip">' + weekDaysHTML(logs, weekStart) + '</div>' +
+      streakHTML(logs, done) +
     '</div>' +
     '<div class="tile">' +
       '<div class="label">' + t("前回") + '</div>' +
@@ -1841,6 +1878,30 @@ function weekDaysHTML(logs, weekStart) {
            (menu ? menuMark(menu) : "") + '</i>';
   }
   return out;
+}
+
+// 週の目標を何週続けて達成しているか。今週がまだ途中なら、先週までの連続を「継続中」として数える
+function goalStreak(logs, doneThisWeek) {
+  const perWeek = {};
+  for (const l of logs) {
+    const d = new Date(l.date + "T00:00:00");
+    d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+    const k = d.toDateString();
+    perWeek[k] = (perWeek[k] || 0) + 1;
+  }
+  const cur = new Date(startOfWeek() + "T00:00:00");
+  if (doneThisWeek < WEEKLY_GOAL) cur.setDate(cur.getDate() - 7);
+  let n = 0;
+  while ((perWeek[cur.toDateString()] || 0) >= WEEKLY_GOAL) { n++; cur.setDate(cur.getDate() - 7); }
+  return n;
+}
+function streakHTML(logs, doneThisWeek) {
+  const n = goalStreak(logs, doneThisWeek);
+  if (!n) return "";
+  const text = doneThisWeek >= WEEKLY_GOAL
+    ? t("{n}週連続で達成！", { n })
+    : t("{n}週連続中", { n });
+  return '<div class="streak' + (doneThisWeek >= WEEKLY_GOAL ? " on" : "") + '">' + icon("flame") + '<span>' + text + '</span></div>';
 }
 
 const WEEKLY_GOAL = 3;            // 週の目標回数
@@ -2100,9 +2161,37 @@ function menuWithExtras(menu, log) {
 }
 
 // 前回と同じ重量を初期値に入れた、まだ回数が空の種目（毎回打ち直さなくて済む）
+// 前回の記録から、今回の重量を決める（ダブルプログレッション）
+// 全セットで目標回数の上限まで届いていれば1段階上げ、届いていなければ同じ重量で回数を伸ばす。
+// アシスト種目は補助の重さなので、上達したら逆に減らす
+function nextPlan(def) {
+  if (def.bw || !def.target) return null;
+  const last = findLastRecord(def.name);
+  if (!last) return null;
+  const weights = last.sets.map(s => Number(s.weight)).filter(w => w > 0);
+  if (!weights.length) return null;
+  const top = Math.max(...weights);
+  const { sets: targetSets, repMax } = parseTarget(def.target);
+  const done = last.sets.filter(s => Number(s.reps) > 0);
+  const cleared = done.length >= targetSets && done.every(s => Number(s.reps) >= repMax);
+  const assist = def.name.includes("アシスト");
+  if (!cleared) return { kind: "same", weight: top, reps: repMax, assist };
+  const step = stepFor(def.name);
+  const weight = Math.max(0, Math.round((top + (assist ? -step : step)) * 100) / 100);
+  return { kind: "up", weight, from: top, reps: repMax, assist };
+}
+function planText(plan) {
+  if (!plan) return "";
+  if (plan.kind === "same") return t("前回と同じ{w}kgで、全セット{r}回を目指しましょう", { w: plan.weight, r: plan.reps });
+  return plan.assist
+    ? t("前回は全セット{r}回できたので、補助を{a}→{w}kgに減らしています", { r: plan.reps, a: plan.from, w: plan.weight })
+    : t("前回は全セット{r}回できたので、{a}→{w}kgに上げています", { r: plan.reps, a: plan.from, w: plan.weight });
+}
+
 function newExercise(def) {
   const last = findLastRecord(def.name);
-  const prefill = last ? last.sets[0].weight : "";
+  const plan = nextPlan(def);
+  const prefill = plan && plan.kind === "up" ? String(plan.weight) : last ? last.sets[0].weight : "";
   return {
     name: def.name,
     sets: Array.from({ length: parseTarget(def.target).sets }, () => ({ weight: prefill, reps: "" }))
@@ -2255,6 +2344,9 @@ function drawExercises() {
       (last ? t("前回") + " " + formatDate(last.date) + "　" + formatSets(last.sets)
             : t(def.note || "初回：軽めの重量で軌道を確認")) +
       '</div>' +
+      (!draft.editingId && nextPlan(def)
+        ? '<div class="plan ' + nextPlan(def).kind + '">' + icon(nextPlan(def).kind === "up" ? "up" : "target") +
+          '<span>' + planText(nextPlan(def)) + '</span></div>' : '') +
       '<div class="ex-summary"></div>';
     top.appendChild(info);
     card.appendChild(top);
@@ -2356,7 +2448,10 @@ function drawExercises() {
       const done = draft.exercises[exIndex].sets.filter(s => s.reps !== "" && Number(s.reps) > 0);
       const cleared = done.length >= targetSets && done.every(s => Number(s.reps) >= repMax);
       hint.hidden = !cleared;
-      if (cleared) hint.textContent = t("全セット完遂 ✓ 次回は 2.5〜5kg 上げてOK");
+      if (cleared) hint.textContent = def.bw
+        ? t("全セット完遂 ✓")
+        : t(def.name.includes("アシスト") ? "全セット完遂 ✓ 次回は補助を減らした重量を入れておきます"
+                                          : "全セット完遂 ✓ 次回は1段階上げた重量を入れておきます");
     }
 
     // − / ＋ を押したときの重量の増減
@@ -2969,7 +3064,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-30.4";
+const APP_VERSION = "2026-10-30.5";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
