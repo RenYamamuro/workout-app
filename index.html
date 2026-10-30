@@ -347,8 +347,13 @@ button.start-btn span { font-size: var(--t-sm); opacity: .85; font-weight: 500; 
   border-radius: var(--r-pill); background: var(--fill); color: var(--ink-2); font-size: var(--t-sm); font-weight: 500; }
 .wo-nav button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wo-nav button i { font-style: normal; font-variant-numeric: tabular-nums; color: var(--ink-3); }
-.wo-nav button.done { background: var(--accent-wash); color: var(--accent); }
-.wo-nav button.done i { color: var(--accent); }
+.wo-nav button svg { display: none; width: 14px; height: 14px; }
+.wo-nav button.done { background: var(--accent-btn); color: #fff; }
+.wo-nav button.done i { display: none; }
+.wo-nav button.done svg { display: block; }
+/* 下へスクロールしている間は目次を引っ込め、上へ戻すと出す */
+.wo-nav { transition: transform .25s var(--ease), opacity .25s var(--ease); }
+.wo-nav.tuck { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 .wo-bar { position: absolute; left: 0; bottom: -.5px; height: 2.5px; background: var(--accent-btn);
   border-radius: 0 2px 2px 0; transition: width .35s var(--ease); }
 body:not([data-screen="workout"]) .wo-bar { display: none; }
@@ -418,13 +423,15 @@ body:not([data-screen="workout"]) .wo-bar { display: none; }
 .goal .bar { fill: none; stroke: var(--accent-btn); stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset .6s var(--ease); }
 .goal.done .bar { stroke: var(--good); }
 .illust.mmap { background: var(--fill); }
-.muscle-box { display: flex; align-items: center; gap: var(--s4); margin-top: var(--s4); padding: var(--s3) var(--s4);
+.muscle-box { display: flex; flex-direction: column; align-items: stretch; gap: var(--s3); margin: var(--s2) 0 var(--s4); padding: var(--s3) var(--s4);
   background: var(--fill); border-radius: var(--r-lg); }
-.muscle-box .views { display: flex; gap: var(--s2); flex: none; }
+.muscle-box .views { display: flex; justify-content: center; gap: var(--s5); flex: none; }
 .muscle-box .views svg { width: 78px; height: 108px; display: block; }
-.muscle-box .legend { font-size: var(--t-sm); color: var(--ink-2); line-height: 1.7; min-width: 0; }
+.muscle-box .legend { display: grid; gap: 4px; font-size: var(--t-sm); color: var(--ink-2); line-height: 1.5; min-width: 0; }
+.muscle-box .legend > div { display: flex; align-items: baseline; gap: var(--s2); }
+.muscle-box .legend > div > b { flex: none; min-width: 3.6em; white-space: nowrap; }
 .muscle-box .legend b { font-weight: 600; color: var(--ink); }
-.muscle-box .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.muscle-box .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; flex: none; }
 .muscle-box .dot.p { background: var(--m1-b); }
 .muscle-box .dot.s { background: var(--m2-b); }
 .ex-head { display: flex; align-items: baseline; gap: var(--s2); }
@@ -803,12 +810,12 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
       <b id="modalTitle"></b>
       <button class="link" id="modalClose">閉じる</button>
     </div>
+    <div id="modalTrend"></div>
+    <div class="muscle-box" id="modalMuscles" hidden></div>
     <div class="modal-top">
       <div class="illust big" id="modalIllust"></div>
       <p class="muted" id="modalNote"></p>
     </div>
-    <div class="muscle-box" id="modalMuscles" hidden></div>
-    <div class="hist" id="modalHistory"></div>
     <div class="row" style="margin-top:14px">
       <label class="filebtn">
         <svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.8h2.8l1.1-2h4.2l1.1 2H14v7.4H2z" /><circle cx="8" cy="9.2" r="2.3"/></svg>
@@ -817,6 +824,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
       </label>
       <button class="link" id="photoDelete" hidden>写真を削除</button>
     </div>
+    <div class="hist" id="modalHistory"></div>
   </div>
 </div>
 
@@ -986,6 +994,21 @@ const EN = {
   "僧帽筋中部・菱形筋": "Mid traps & rhomboids", "中臀筋": "Glute medius"
 };
 const exName = name => t(name);
+// 記録画面の目次に出す短い呼び名（無ければ普通の種目名）
+const SHORT_JA = {
+  "スミスマシンベンチプレス": "スミスベンチ", "アイソラテラルショルダープレス": "ショルダープレス",
+  "ペクトラルフライ": "ペックフライ", "レッグエクステンション": "レッグエクステ", "ケーブルプレスダウン": "プレスダウン",
+  "アブドミナルクランチ": "クランチ", "MTSバイセップカール": "バイセップカール", "バックエクステンション": "バックエクステ",
+  "シーテッドレッグプレス": "レッグプレス", "ヒップアブダクション": "アブダクション", "アイソラテラルハイロー": "ハイロー"
+};
+const SHORT_EN = {
+  "スミスマシンベンチプレス": "Smith Bench", "アイソラテラルショルダープレス": "Shoulder Press",
+  "レッグエクステンション": "Leg Ext.", "ケーブルプレスダウン": "Pressdown", "アブドミナルクランチ": "Crunch",
+  "アシストチン": "Assisted Chin", "MTSバイセップカール": "Biceps Curl", "バックエクステンション": "Back Ext.",
+  "シーテッドレッグプレス": "Leg Press", "ヒップアブダクション": "Abduction", "アイソラテラルハイロー": "High Row",
+  "トーソローテーション": "Torso Rot."
+};
+const shortName = name => (LANG === "en" ? SHORT_EN[name] : SHORT_JA[name]) || exName(name);
 
 // 画面に最初から書いてある文言（HTML）を訳す。元の日本語は覚えておき、日本語に戻すときに使う
 function translateStatic() {
@@ -1604,8 +1627,15 @@ function showScreen(name, title) {
 }
 
 // 大きいタイトルが画面の外に出たら、ナビゲーションバーを材質つきにして小さいタイトルを出す
+let lastScrollY = 0;
 addEventListener("scroll", () => {
   document.body.classList.toggle("scrolled", scrollY > 40);
+  // 記録画面では、下へスクロール中は種目の目次を隠して入力欄を広く使う
+  const dy = scrollY - lastScrollY;
+  if (Math.abs(dy) > 6) {
+    document.getElementById("woNav").classList.toggle("tuck", dy > 0 && scrollY > 160);
+    lastScrollY = scrollY;
+  }
 }, { passive: true });
 
 // 同じアニメーションを繰り返し再生するには、一度外して再描画を挟む必要がある
@@ -2182,12 +2212,15 @@ function drawExercises() {
   // 上に貼りつく種目の目次。入力済みの種目は色が変わる
   const nav = document.getElementById("woNav");
   nav.innerHTML = "";
+  nav.classList.remove("tuck");
   currentMenu.exercises.forEach((def, i) => {
     const chip = document.createElement("button");
-    chip.innerHTML = '<i>' + (i + 1) + '</i><span>' + exName(def.name) + '</span>';
+    chip.innerHTML = '<i>' + (i + 1) + '</i>' + icon("check") + '<span>' + shortName(def.name) + '</span>';
+    chip.title = exName(def.name);
     chip.onclick = () => {
       const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
       document.getElementById("exerciseList").children[i].scrollIntoView({ behavior, block: "start" });
+      setTimeout(() => { lastScrollY = scrollY; nav.classList.remove("tuck"); }, 600);
     };
     nav.appendChild(chip);
   });
@@ -2541,10 +2574,7 @@ function drawModal() {
   const hasPhoto = !!photos[modalExercise.name];
   modalTitle.textContent = exName(modalExercise.name);
   modalIllust.innerHTML = artHTML(modalExercise.name, photos);
-  modalNote.textContent = hasPhoto
-    ? t(modalExercise.note)
-    : (modalExercise.note ? t(modalExercise.note) + " / " : "") +
-      t("ジムで実物の写真を撮って登録すると、この図の代わりに表示されます。");
+  modalNote.textContent = modalExercise.note ? t(modalExercise.note) : "";
   photoDelete.hidden = !hasPhoto;
   drawModalMuscles();
   drawModalHistory();
@@ -2560,8 +2590,8 @@ function drawModalMuscles() {
   box.innerHTML =
     '<div class="views">' + muscleSVG("front", info) + muscleSVG("back", info) + '</div>' +
     '<div class="legend">' +
-      '<div><span class="dot p"></span><b>' + t("主") + '</b> ' + names(info.p) + '</div>' +
-      (info.s.length ? '<div><span class="dot s"></span><b>' + t("補助") + '</b> ' + names(info.s) + '</div>' : '') +
+      '<div><b><span class="dot p"></span>' + t("主") + '</b><span>' + names(info.p) + '</span></div>' +
+      (info.s.length ? '<div><b><span class="dot s"></span>' + t("補助") + '</b><span>' + names(info.s) + '</span></div>' : '') +
     '</div>';
 }
 
@@ -2627,8 +2657,10 @@ function trendHTML(rows) {
 
 function drawModalHistory() {
   const box = document.getElementById("modalHistory");
+  const trendBox = document.getElementById("modalTrend");
   const rows = exerciseHistory(modalExercise.name);
   box.innerHTML = "";
+  trendBox.innerHTML = "";
 
   const heading = document.createElement("h4");
   heading.textContent = t("この種目の記録");
@@ -2646,7 +2678,7 @@ function drawModalHistory() {
   const bestValue = Math.max(...rows.map(r => r.est || 0));
 
   const chart = trendHTML(rows);
-  if (chart) box.insertAdjacentHTML("beforeend", chart);
+  if (chart) trendBox.innerHTML = chart;
 
   rows.slice(0, MAX_HISTORY_ROWS).forEach(row => {
     const isBest = row.est !== null && row.est === bestValue;
@@ -2934,7 +2966,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-10-30.1";
+const APP_VERSION = "2026-10-30.2";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
