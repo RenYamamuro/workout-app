@@ -995,16 +995,16 @@ const EN = {
   "同期中…": "Syncing…", "✓ {t} 同期": "✓ Synced {t}", "同期エラー": "Sync error", "同期できませんでした：": "Couldn't sync: ",
 
   // メニュー
-  "プッシュ（胸・肩・三頭）+ 脚前面": "Push (chest, shoulders, triceps) + front of legs",
-  "プル（背中・二頭）+ 脚後面": "Pull (back, biceps) + back of legs",
-  "脚メイン + 上半身の補完": "Legs + upper-body accessories",
+  "プッシュ（胸・肩・三頭）": "Push (chest, shoulders, triceps)",
+  "プル（背中・肩の後ろ・二頭）": "Pull (back, rear delts, biceps)",
+  "脚・体幹": "Legs & core",
 
   // 種目名
   "スミスマシンベンチプレス": "Smith Machine Bench Press", "アイソラテラルショルダープレス": "Iso-Lateral Shoulder Press",
   "チェストプレス": "Chest Press", "ペクトラルフライ": "Pec Fly", "レッグエクステンション": "Leg Extension",
   "ケーブルプレスダウン": "Cable Pressdown", "アブドミナルクランチ": "Abdominal Crunch",
   "ラットプルダウン": "Lat Pulldown", "ローロー": "Low Row", "アシストチン": "Assisted Chin-Up",
-  "リアデルトフライ": "Rear Delt Fly", "レッグカール": "Leg Curl", "MTSバイセップカール": "MTS Biceps Curl",
+  "リアデルトフライ": "Rear Delt Fly", "レッグカール": "Leg Curl", "MTSバイセップカール": "MTS Biceps Curl", "ダンベルハンマーカール": "Dumbbell Hammer Curl",
   "バックエクステンション": "Back Extension", "V-スクワット": "V-Squat", "シーテッドレッグプレス": "Seated Leg Press",
   "アシストディップ": "Assisted Dip", "ヒップ＆グルート": "Hip & Glute", "ヒップアブダクション": "Hip Abduction",
   "アイソラテラルハイロー": "Iso-Lateral High Row", "ラットレイズ": "Lateral Raise", "ダンベルサイドレイズ": "Dumbbell Lateral Raise", "トーソローテーション": "Torso Rotation",
@@ -1020,7 +1020,10 @@ const EN = {
   "補助を徐々に減らして自重懸垂へ": "Reduce the assist over time toward bodyweight chin-ups",
   "ペクトラルフライを逆向きに座り、胸をパッドに当てて肩の高さで外へ開く":
     "Sit backwards on the pec fly, chest against the pad, and open your arms at shoulder height",
-  "ハムストリング": "Hamstrings", "二頭の単関節種目": "Biceps isolation", "自重なら重量は空欄でOK": "Leave weight blank for bodyweight",
+  "ハムストリング": "Hamstrings",
+  "ハムストリング。前ももの種目の間に挟んで、前ももを休ませる": "Hamstrings. Placed between the quad exercises to give the quads a break",
+  "親指を上にして握る。上腕筋・前腕。片手の重さを記録": "Thumbs up grip. Brachialis and forearms. Log the weight of one dumbbell",
+  "座って押すマシン。軌道が安定": "Seated pressing machine with a fixed path", "胸の単関節種目": "Chest isolation", "二頭の単関節種目": "Biceps isolation", "自重なら重量は空欄でOK": "Leave weight blank for bodyweight",
   "脚の主力種目": "Main leg lift", "重量の刻みを確認する": "Check the weight increments",
   "胸・三頭。補助を徐々に減らして自重ディップへ": "Chest & triceps. Reduce the assist toward bodyweight dips",
   "臀部": "Glutes", "中臀筋・股関節の安定性": "Glute medius & hip stability", "背中の上部": "Upper back", "三角筋中部": "Side delts",
@@ -1041,12 +1044,12 @@ const SHORT_JA = {
   "ペクトラルフライ": "ペックフライ", "レッグエクステンション": "レッグエクステ", "ケーブルプレスダウン": "プレスダウン",
   "アブドミナルクランチ": "クランチ", "MTSバイセップカール": "バイセップカール", "バックエクステンション": "バックエクステ",
   "シーテッドレッグプレス": "レッグプレス", "ヒップアブダクション": "アブダクション", "アイソラテラルハイロー": "ハイロー",
-  "ダンベルサイドレイズ": "サイドレイズ"
+  "ダンベルサイドレイズ": "サイドレイズ", "ダンベルハンマーカール": "ハンマーカール"
 };
 const SHORT_EN = {
   "スミスマシンベンチプレス": "Smith Bench", "アイソラテラルショルダープレス": "Shoulder Press",
   "レッグエクステンション": "Leg Ext.", "ケーブルプレスダウン": "Pressdown", "アブドミナルクランチ": "Crunch",
-  "アシストチン": "Assisted Chin", "ダンベルサイドレイズ": "Side Raise", "MTSバイセップカール": "Biceps Curl", "バックエクステンション": "Back Ext.",
+  "アシストチン": "Assisted Chin", "ダンベルサイドレイズ": "Side Raise", "ダンベルハンマーカール": "Hammer Curl", "MTSバイセップカール": "Biceps Curl", "バックエクステンション": "Back Ext.",
   "シーテッドレッグプレス": "Leg Press", "ヒップアブダクション": "Abduction", "アイソラテラルハイロー": "High Row",
   "トーソローテーション": "Torso Rot."
 };
@@ -1086,41 +1089,41 @@ function translateStatic() {
 const MENUS = {
   A: {
     name: "PUSH DAY", mark: "P",
-    title: "プッシュ（胸・肩・三頭）+ 脚前面",
+    title: "プッシュ（胸・肩・三頭）",
     exercises: [
-      { name: "スミスマシンベンチプレス",       target: "3×8〜10",  ratio: true, note: "フリーウェイトと重量が違うので「スミス」と分けて記録する" },
-      { name: "アイソラテラルショルダープレス", target: "3×10",     note: "左右独立。左右差の修正に有利" },
-      { name: "チェストプレス",                 target: "3×10〜12", note: "座って押すマシン。軌道が安定。初回は軽めで確認" },
-      { name: "ペクトラルフライ",               target: "3×12〜15", note: "胸の単関節種目。初回は軽めで軌道確認" },
-      { name: "レッグエクステンション",         target: "3×12〜15", note: "大腿四頭筋" },
-      { name: "ケーブルプレスダウン",           target: "2×12",     note: "三頭の単関節種目" },
-      { name: "アブドミナルクランチ",           target: "3×12〜15", note: "体幹は最後に" }
+      { name: "スミスマシンベンチプレス",       target: "3×6〜10",  ratio: true, note: "フリーウェイトと重量が違うので「スミス」と分けて記録する" },
+      { name: "アイソラテラルショルダープレス", target: "3×8〜12",  note: "左右独立。左右差の修正に有利" },
+      { name: "チェストプレス",                 target: "3×10〜12", note: "座って押すマシン。軌道が安定" },
+      { name: "アシストディップ",               target: "3×8〜12",  note: "胸・三頭。補助を徐々に減らして自重ディップへ" },
+      { name: "ペクトラルフライ",               target: "3×12〜15", note: "胸の単関節種目" },
+      { name: "ダンベルサイドレイズ",           target: "3×12〜15", note: "三角筋中部。片手の重さを記録。肩の高さまで、少し前に上げる" },
+      { name: "ケーブルプレスダウン",           target: "3×10〜15", note: "三頭の単関節種目" }
     ]
   },
   B: {
     name: "PULL DAY", mark: "L",
-    title: "プル（背中・二頭）+ 脚後面",
+    title: "プル（背中・肩の後ろ・二頭）",
     exercises: [
-      { name: "ラットプルダウン",               target: "3×10〜12", note: "MAGグリップで握り方を変えられる" },
-      { name: "ローロー",                       target: "3×10〜12", note: "アイソラテラルDYローでも可。背中の厚み" },
       { name: "アシストチン",                   target: "3×6〜10",  note: "補助を徐々に減らして自重懸垂へ" },
+      { name: "ローロー",                       target: "3×8〜12",  note: "アイソラテラルDYローでも可。背中の厚み" },
+      { name: "ラットプルダウン",               target: "3×10〜12", note: "MAGグリップで握り方を変えられる" },
+      { name: "アイソラテラルハイロー",         target: "3×10〜12", note: "背中の上部" },
       { name: "リアデルトフライ",               target: "3×12〜15", note: "ペクトラルフライを逆向きに座り、胸をパッドに当てて肩の高さで外へ開く" },
-      { name: "レッグカール",                   target: "3×12〜15", note: "ハムストリング" },
-      { name: "MTSバイセップカール",            target: "2×12",     note: "二頭の単関節種目" },
-      { name: "バックエクステンション",         target: "2×15",     bw: true, note: "自重なら重量は空欄でOK" }
+      { name: "MTSバイセップカール",            target: "3×10〜12", note: "二頭の単関節種目" },
+      { name: "ダンベルハンマーカール",         target: "2×10〜12", note: "親指を上にして握る。上腕筋・前腕。片手の重さを記録" }
     ]
   },
   C: {
     name: "LEG DAY", mark: "G",
-    title: "脚メイン + 上半身の補完",
+    title: "脚・体幹",
     exercises: [
-      { name: "V-スクワット",                   target: "3×10〜12", ratio: true, note: "脚の主力種目" },
-      { name: "シーテッドレッグプレス",         target: "3×12〜15", ratio: true, note: "重量の刻みを確認する" },
-      { name: "アシストディップ",               target: "3×8〜12",  note: "胸・三頭。補助を徐々に減らして自重ディップへ" },
-      { name: "ヒップ＆グルート",               target: "3×12〜15", note: "臀部" },
+      { name: "V-スクワット",                   target: "3×8〜12",  ratio: true, note: "脚の主力種目" },
+      { name: "レッグカール",                   target: "3×10〜15", note: "ハムストリング。前ももの種目の間に挟んで、前ももを休ませる" },
+      { name: "シーテッドレッグプレス",         target: "3×10〜15", ratio: true, note: "重量の刻みを確認する" },
+      { name: "レッグエクステンション",         target: "3×12〜15", note: "大腿四頭筋" },
+      { name: "バックエクステンション",         target: "2×15",     bw: true, note: "自重なら重量は空欄でOK" },
       { name: "ヒップアブダクション",           target: "2×15",     note: "中臀筋・股関節の安定性" },
-      { name: "アイソラテラルハイロー",         target: "3×10〜12", note: "背中の上部" },
-      { name: "ダンベルサイドレイズ",           target: "2×12〜15", note: "三角筋中部。片手の重さを記録。肩の高さまで、少し前に上げる" }
+      { name: "アブドミナルクランチ",           target: "3×12〜15", note: "体幹は最後に" }
     ]
   }
 };
@@ -1239,6 +1242,13 @@ const ART = {
     '<path class="p" d="M62 58v18M62 76l14 2M59 60L40 50"/>' +
     '<path class="m" d="M32 54l22 10M32 44h12"/>',
 
+  "ダンベルハンマーカール":
+    '<path class="s" d="M32 90h36"/>' +
+    '<circle class="p" cx="50" cy="24" r="6"/>' +
+    '<path class="p" d="M50 30v30M50 60l-7 28M50 60l7 28M50 36l-6 16M50 36l6 16"/>' +
+    '<path class="p" d="M44 52l2-12M56 52l-2-12"/>' +
+    '<path class="m" d="M44 34v10M56 34v10"/>',
+
   "バックエクステンション":
     '<path class="s" d="M16 92h68M30 92V74M30 74l30-22"/>' +
     '<path class="m" d="M23 84h14M50 62l12-8"/>' +
@@ -1331,7 +1341,7 @@ function loadSteps() {
   try { return JSON.parse(localStorage.getItem(STEP_KEY)) || {}; }
   catch (e) { return {}; }
 }
-const DEFAULT_STEPS = { "ダンベルサイドレイズ": 1 };
+const DEFAULT_STEPS = { "ダンベルサイドレイズ": 1, "ダンベルハンマーカール": 1 };
 function stepFor(name) {
   const v = loadSteps()[name];
   return STEP_CHOICES.includes(v) ? v : (DEFAULT_STEPS[name] || 2.5);
@@ -1457,6 +1467,7 @@ const MUSCLES = {
   "アシストチン": { view: "back", box: "18 3 64 64", p: ["lats"], s: ["midback", "delt-rear", "biceps"] },
   "レッグカール": { view: "back", box: "18 36 64 64", p: ["hamstrings"], s: ["calves"] },
   "MTSバイセップカール": { view: "front", box: "18 3 64 64", p: ["biceps"], s: ["forearm"] },
+  "ダンベルハンマーカール": { view: "front", box: "18 3 64 64", p: ["biceps", "forearm"], s: [] },
   "バックエクステンション": { view: "back", box: "18 30 64 64", p: ["lowerback"], s: ["glutes", "hamstrings"] },
   "V-スクワット": { view: "front", box: "18 36 64 64", p: ["quads"], s: ["glutes", "hamstrings", "adductors"] },
   "シーテッドレッグプレス": { view: "front", box: "18 36 64 64", p: ["quads"], s: ["glutes", "hamstrings", "adductors"] },
@@ -3097,7 +3108,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-11-16.1";
+const APP_VERSION = "2026-11-16.2";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
