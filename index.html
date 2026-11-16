@@ -1007,7 +1007,7 @@ const EN = {
   "リアデルトフライ": "Rear Delt Fly", "レッグカール": "Leg Curl", "MTSバイセップカール": "MTS Biceps Curl",
   "バックエクステンション": "Back Extension", "V-スクワット": "V-Squat", "シーテッドレッグプレス": "Seated Leg Press",
   "アシストディップ": "Assisted Dip", "ヒップ＆グルート": "Hip & Glute", "ヒップアブダクション": "Hip Abduction",
-  "アイソラテラルハイロー": "Iso-Lateral High Row", "ラットレイズ": "Lateral Raise", "トーソローテーション": "Torso Rotation",
+  "アイソラテラルハイロー": "Iso-Lateral High Row", "ラットレイズ": "Lateral Raise", "ダンベルサイドレイズ": "Dumbbell Lateral Raise", "トーソローテーション": "Torso Rotation",
 
   // 種目の注記
   "フリーウェイトと重量が違うので「スミス」と分けて記録する": "Log separately from the free-weight bench — the loads differ",
@@ -1024,6 +1024,7 @@ const EN = {
   "脚の主力種目": "Main leg lift", "重量の刻みを確認する": "Check the weight increments",
   "胸・三頭。補助を徐々に減らして自重ディップへ": "Chest & triceps. Reduce the assist toward bodyweight dips",
   "臀部": "Glutes", "中臀筋・股関節の安定性": "Glute medius & hip stability", "背中の上部": "Upper back", "三角筋中部": "Side delts",
+  "三角筋中部。片手の重さを記録。肩の高さまで、少し前に上げる": "Side delts. Log the weight of one dumbbell. Raise to shoulder height, slightly in front of you",
   "今のメニューにない種目（過去の記録）": "Not in the current menu (from a past workout)",
 
   // 筋肉名
@@ -1039,12 +1040,13 @@ const SHORT_JA = {
   "スミスマシンベンチプレス": "スミスベンチ", "アイソラテラルショルダープレス": "ショルダープレス",
   "ペクトラルフライ": "ペックフライ", "レッグエクステンション": "レッグエクステ", "ケーブルプレスダウン": "プレスダウン",
   "アブドミナルクランチ": "クランチ", "MTSバイセップカール": "バイセップカール", "バックエクステンション": "バックエクステ",
-  "シーテッドレッグプレス": "レッグプレス", "ヒップアブダクション": "アブダクション", "アイソラテラルハイロー": "ハイロー"
+  "シーテッドレッグプレス": "レッグプレス", "ヒップアブダクション": "アブダクション", "アイソラテラルハイロー": "ハイロー",
+  "ダンベルサイドレイズ": "サイドレイズ"
 };
 const SHORT_EN = {
   "スミスマシンベンチプレス": "Smith Bench", "アイソラテラルショルダープレス": "Shoulder Press",
   "レッグエクステンション": "Leg Ext.", "ケーブルプレスダウン": "Pressdown", "アブドミナルクランチ": "Crunch",
-  "アシストチン": "Assisted Chin", "MTSバイセップカール": "Biceps Curl", "バックエクステンション": "Back Ext.",
+  "アシストチン": "Assisted Chin", "ダンベルサイドレイズ": "Side Raise", "MTSバイセップカール": "Biceps Curl", "バックエクステンション": "Back Ext.",
   "シーテッドレッグプレス": "Leg Press", "ヒップアブダクション": "Abduction", "アイソラテラルハイロー": "High Row",
   "トーソローテーション": "Torso Rot."
 };
@@ -1118,7 +1120,7 @@ const MENUS = {
       { name: "ヒップ＆グルート",               target: "3×12〜15", note: "臀部" },
       { name: "ヒップアブダクション",           target: "2×15",     note: "中臀筋・股関節の安定性" },
       { name: "アイソラテラルハイロー",         target: "3×10〜12", note: "背中の上部" },
-      { name: "ラットレイズ",                   target: "2×12〜15", note: "三角筋中部" }
+      { name: "ダンベルサイドレイズ",           target: "2×12〜15", note: "三角筋中部。片手の重さを記録。肩の高さまで、少し前に上げる" }
     ]
   }
 };
@@ -1284,6 +1286,12 @@ const ART = {
     '<path class="p" d="M50 40v12M44 44l-14 6M56 44l14 6"/>' +
     '<path class="m" d="M24 44v18M76 44v18"/>',
 
+  "ダンベルサイドレイズ":
+    '<path class="s" d="M32 90h36"/>' +
+    '<circle class="p" cx="50" cy="26" r="6"/>' +
+    '<path class="p" d="M50 32v28M50 60l-7 28M50 60l7 28M50 38l-20 5M50 38l20 5"/>' +
+    '<path class="m" d="M26 37v12M74 37v12M22 39v8M78 39v8"/>',
+
   "トーソローテーション":
     '<path class="s" d="M44 58h12v18H44zM50 76v12M36 90h28"/>' +
     '<circle class="p" cx="50" cy="32" r="6"/>' +
@@ -1323,9 +1331,10 @@ function loadSteps() {
   try { return JSON.parse(localStorage.getItem(STEP_KEY)) || {}; }
   catch (e) { return {}; }
 }
+const DEFAULT_STEPS = { "ダンベルサイドレイズ": 1 };
 function stepFor(name) {
   const v = loadSteps()[name];
-  return STEP_CHOICES.includes(v) ? v : 2.5;
+  return STEP_CHOICES.includes(v) ? v : (DEFAULT_STEPS[name] || 2.5);
 }
 function cycleStep(name) {
   const steps = loadSteps();
@@ -1455,6 +1464,7 @@ const MUSCLES = {
   "ヒップアブダクション": { view: "back", box: "18 36 64 64", p: ["abductors"], s: ["glutes"] },
   "アイソラテラルハイロー": { view: "back", box: "18 3 64 64", p: ["midback", "lats"], s: ["delt-rear", "biceps"] },
   "ラットレイズ": { view: "front", box: "18 3 64 64", p: ["delt-side"], s: ["delt-front", "traps"] },
+  "ダンベルサイドレイズ": { view: "front", box: "18 3 64 64", p: ["delt-side"], s: ["delt-front", "traps"] },
   "トーソローテーション": { view: "front", box: "18 22 64 64", p: ["obliques"], s: ["abs"] }
 };
 
@@ -3087,7 +3097,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-11-03.1";
+const APP_VERSION = "2026-11-16.1";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
