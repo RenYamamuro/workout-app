@@ -14,9 +14,9 @@
 <link rel="stylesheet" href="fonts/mplus.css">
 <!-- iOS はホーム画面のアイコンを強くキャッシュするので、差し替えるときは
      ファイル名ごと変える（-v2）。サイズ指定つきも併記して確実に拾わせる -->
-<link rel="apple-touch-icon" href="icons/icon-180-v3.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180-v3.png">
-<link rel="icon" href="icons/icon-192-v3.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180-v4.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180-v4.png">
+<link rel="icon" href="icons/icon-192-v4.png" sizes="192x192" type="image/png">
 <title>LIFT LOG</title>
 <script>
   // 表示テーマは描画前に当てる。あとから当てると一瞬ちらつくため。
@@ -392,6 +392,23 @@ body:not([data-screen="workout"]) .wo-bar { display: none; }
 .vol-chart .bar { fill: var(--series-1-soft); }
 .vol-chart .bar.now { fill: var(--series-1); }
 .vol-chart .lbl { font-size: 10px; fill: var(--ink-3); font-variant-numeric: tabular-nums; }
+/* 履歴：今月のまとめ */
+.month-sum { padding: var(--s4); }
+.month-sum .head b { display: block; font-size: var(--t-md); font-weight: 600; }
+.month-sum .head span { display: block; margin-top: 2px; font-size: var(--t-sm); color: var(--ink-3); }
+.month-sum .nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); margin-top: var(--s3); }
+.month-sum .nums div { font-size: var(--t-xs); color: var(--ink-3); }
+.month-sum .nums b { display: block; margin-top: 2px; font-size: var(--t-lg); font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.month-sum .nums b.pb { color: var(--pb); }
+.month-sum .nums small { display: block; font-size: var(--t-xs); font-variant-numeric: tabular-nums; }
+.month-sum .nums small.up { color: var(--good); }
+.month-sum .bests { margin: var(--s3) 0 0; font-size: var(--t-xs); color: var(--ink-2); }
+.month-head .pb { color: var(--pb); }
+/* 履歴：体重の推移 */
+.bw-chart { padding: var(--s4); margin-bottom: var(--s4); }
+.bw-chart .head b { display: block; font-size: var(--t-md); font-weight: 600; }
+.bw-chart .head > span { display: block; margin-top: 2px; font-size: var(--t-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.bw-chart svg { display: block; width: 100%; height: auto; margin-top: var(--s3); overflow: visible; }
 .vol-chart .val { font-size: 10px; fill: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
 .ex-top { display: flex; gap: var(--s3); padding: var(--s4); }
 .ex-info { flex: 1; min-width: 0; }
@@ -469,6 +486,25 @@ body:not([data-screen="workout"]) .wo-bar { display: none; }
 .plan svg { width: 13px; height: 13px; flex: none; margin-top: 1px; }
 .plan.up { color: var(--good); font-weight: 600; }
 .card.collapsed .plan { display: none; }
+.plan.stall { color: var(--ink-2); }
+.plan.stall svg { color: var(--warn); }
+/* マシンの設定メモ（シートの高さなど）。タップで書き換え */
+.setup { display: flex; align-items: flex-start; gap: 5px; margin-top: 4px; padding: 0; font-size: var(--t-xs); line-height: 1.4; color: var(--accent); text-align: left; white-space: normal; }
+.setup svg { width: 13px; height: 13px; flex: none; margin-top: 1px; }
+.swap-note { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--accent-wash); color: var(--accent); font-size: var(--t-xs); font-weight: 600; }
+.card.collapsed .setup { display: none; }
+/* 種目ごとの操作（設定メモ・今日は飛ばす・入れ替え）。透明な選択欄を重ね、端末標準の選択画面を開く */
+.ex-more { position: relative; flex: none; align-self: center; width: 32px; height: 28px; margin: -6px -6px -6px 0; border-radius: var(--r-pill); color: var(--ink-3); display: grid; place-items: center; }
+.ex-more::after { content: ""; position: absolute; inset: -8px -6px; }
+.ex-more select { position: absolute; inset: -8px -6px; width: auto; min-height: 0; opacity: 0; cursor: pointer; z-index: 1; padding: 0; border: 0; }
+.card.skipped { opacity: .55; }
+.card.skipped .ex-summary { color: var(--ink-3); }
+.wo-nav button.skip { text-decoration: line-through; color: var(--ink-3); }
+.wo-nav button.skip i { color: var(--ink-3); }
+/* 前回のメモ（同じメニューの前回の記録に書いたこと） */
+.prev-memo { padding: var(--s3) var(--s4); }
+.prev-memo b { display: block; font-size: var(--t-xs); font-weight: 500; color: var(--ink-3); }
+.prev-memo p { margin: 2px 0 0; font-size: var(--t-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .est { padding: var(--s3) var(--s4); border-top: 1px solid var(--line); font-size: var(--t-sm); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .est b { color: var(--ink); font-size: var(--t-md); font-weight: 600; }
@@ -618,6 +654,9 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
 .hist-row .v { flex: 1; min-width: 0; }
 .hist-row .e { flex: none; color: var(--ink-3); font-size: var(--t-sm); }
 .hist-row.best .e { color: var(--pb); font-weight: 600; }
+.setup-field { margin-top: var(--s4); }
+.setup-field label { display: block; margin-bottom: var(--s2); font-size: var(--t-xs); color: var(--ink-3); }
+.setup-field textarea { min-height: 60px; }
 .filebtn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--s1); cursor: pointer; min-height: 36px; padding: 0 var(--s4); border-radius: var(--r-pill); background: var(--fill); color: var(--accent); font-size: var(--t-sm); font-weight: 600; }
 @media (min-width: 721px) {
   .modal { align-items: center; padding: var(--s5); }
@@ -709,6 +748,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
 
   <!-- 記録画面 -->
   <section id="workoutScreen" hidden>
+    <div class="card prev-memo" id="prevMemo" hidden></div>
     <div class="date-row">
       <label for="dateInput">実施日</label>
       <input type="date" id="dateInput">
@@ -767,7 +807,7 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
         <span>kg</span>
       </div>
     </div>
-    <p class="group-foot">推定1RMの体重比に使います。</p>
+    <p class="group-foot">推定1RMの体重比に使います。変えるたびに日付つきで残り、履歴に推移が出ます。</p>
 
     <div class="group-title">通知</div>
     <div class="group">
@@ -806,7 +846,9 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
         <button data-hf="C">LEG</button>
       </span>
     </div>
+    <div class="card month-sum" id="monthSum" hidden></div>
     <div class="card vol-chart" id="volChart" hidden></div>
+    <div class="card bw-chart" id="bwChart" hidden></div>
     <p class="group-foot" id="historyHint" style="margin:0 0 var(--s3)">
       日付をタップすると中身を開きます。種目名をタップすると、その種目だけの記録と推移を見られます。
     </p>
@@ -857,6 +899,10 @@ input.bw-input { width: 96px; text-align: right; font-variant-numeric: tabular-n
       </label>
       <button class="link danger" id="photoDelete" hidden>写真を削除</button>
     </div>
+    <div class="setup-field">
+      <label for="setupInput">マシンの設定（シートの高さ・ピンの位置など）</label>
+      <textarea id="setupInput" rows="2" placeholder="例）シート4、背もたれ2"></textarea>
+    </div>
     <div class="hist" id="modalHistory"></div>
   </div>
 </div>
@@ -897,7 +943,23 @@ const EN = {
   "クラウド同期": "Cloud sync", "アカウント": "Account", "Googleでログイン": "Sign in with Google",
   "今すぐ同期": "Sync now", "ログアウト": "Sign out",
   "外観": "Appearance", "表示テーマ": "Theme", "自動": "Auto", "ライト": "Light", "ダーク": "Dark", "言語": "Language",
-  "プロフィール": "Profile", "体重": "Body weight", "推定1RMの体重比に使います。": "Used for the estimated 1RM-to-body-weight ratio.",
+  "プロフィール": "Profile", "体重": "Body weight", "推定1RMの体重比に使います。変えるたびに日付つきで残り、履歴に推移が出ます。":
+    "Used for the estimated 1RM-to-body-weight ratio. Each change is kept by date and charted in History.",
+  "マシンの設定（シートの高さ・ピンの位置など）": "Machine settings (seat height, pin position, etc.)",
+  "例）シート4、背もたれ2": "e.g. Seat 4, back pad 2",
+  "{n} のマシンの設定": "Machine settings for {n}", "この種目の操作": "Exercise options",
+  "この種目": "This exercise", "マシンの設定をメモ": "Note machine settings", "今日は飛ばす": "Skip today",
+  "飛ばすのをやめる": "Don't skip", "今日だけ入れ替え：同じ部位": "Swap for today: same muscles", "今日だけ入れ替え：その他": "Swap for today: others",
+  "元の種目に戻す": "Back to the original", "同じ部位の種目はメニューに入っています": "Other exercises for these muscles are already in today's menu",
+  "今日は飛ばします（タップで戻す）": "Skipped today (tap to undo)", "今日だけ {n} の代わり": "Today only, instead of {n}",
+  "前回のメモ（{d}）": "Notes from last time ({d})",
+  "3回続けて回数が伸びていません。{a}→{w}kgに下げて、回数を稼ぎ直しましょう":
+    "Reps haven't gone up for 3 sessions. Drop {a}→{w}kg and build the reps back up",
+  "3回続けて回数が伸びていません。補助を{a}→{w}kgに増やして、回数を稼ぎ直しましょう":
+    "Reps haven't gone up for 3 sessions. Add assistance {a}→{w}kg and build the reps back up",
+  "今月のまとめ": "This month", "{m}月の記録": "{mon}", "回数": "Workouts", "総挙上量": "Volume",
+  "自己ベスト更新": "New bests", "先月 {v}": "Last month {v}",
+  "ベスト更新 {n}": "{n} PR", " ほか{n}種目": " and {n} more", "体重の推移": "Body weight", "{d} から {v}kg": "{v}kg since {d}",
   "通知": "Notifications", "保存忘れの通知": "Unsaved workout reminder",
   "データ": "Data", "使用中の容量": "Storage used", "書き出し": "Export", "読み込み": "Import", "アプリの版": "Version",
   "すべて": "All",
@@ -1354,6 +1416,25 @@ function cycleStep(name) {
   return steps[name];
 }
 
+// 種目ごとのマシンの設定メモ（シートの高さ・ピンの位置など）。{ 種目名: { text, at } }
+// 空にしたメモも at 付きで残し、同期で「消した」ことが他の端末に伝わるようにする
+const SETUP_KEY = "workout-setup-v1";
+function loadSetups() {
+  try { return JSON.parse(localStorage.getItem(SETUP_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function setupText(name) {
+  const v = loadSetups()[name];
+  return v ? v.text : "";
+}
+function saveSetup(name, text) {
+  const all = loadSetups();
+  if ((all[name] ? all[name].text : "") === text.trim()) return;
+  all[name] = { text: text.trim(), at: new Date().toISOString() };
+  localStorage.setItem(SETUP_KEY, JSON.stringify(all));
+  if (window.cloudSync) window.cloudSync();
+}
+
 const DELETED_PHOTO_KEY = "workout-deleted-photos-v1";
 function loadDeletedPhotos() {
   try { return JSON.parse(localStorage.getItem(DELETED_PHOTO_KEY)) || []; }
@@ -1541,8 +1622,18 @@ function loadBodyweight() {
   const v = Number(localStorage.getItem(BODYWEIGHT_KEY));
   return v > 0 ? v : 58;
 }
+// 体重は日付ごとにも残して、履歴に推移を出す。{ "YYYY-MM-DD": { kg, at } }（同じ日は上書き）
+const BODYWEIGHT_LOG_KEY = "workout-bodyweight-log-v1";
+function loadBodyweightLog() {
+  try { return JSON.parse(localStorage.getItem(BODYWEIGHT_LOG_KEY)) || {}; }
+  catch (e) { return {}; }
+}
 function saveBodyweight(kg) {
   localStorage.setItem(BODYWEIGHT_KEY, String(kg));
+  const log = loadBodyweightLog();
+  log[todayString()] = { kg, at: new Date().toISOString() };
+  localStorage.setItem(BODYWEIGHT_LOG_KEY, JSON.stringify(log));
+  if (window.cloudSync) window.cloudSync();
 }
 
 function estimate1RM(weight, reps) {
@@ -1629,6 +1720,9 @@ const ICONS = {
   trash: '<path d="M2.8 4.4h10.4M6.4 4.4V2.8h3.2v1.6M4.4 4.4l.6 8.8h6l.6-8.8"/>',
   edit:  '<path d="M9.4 3.4 12.6 6.6 5 14.2H1.8V11z"/><path d="M8 4.8 11.2 8"/>',
   up:    '<path d="M8 13V3.4M4 7.2 8 3.2l4 4"/>',
+  down:  '<path d="M8 3v9.6M4 8.8l4 4 4-4"/>',
+  more:  '<circle cx="3.6" cy="8" r=".9"/><circle cx="8" cy="8" r=".9"/><circle cx="12.4" cy="8" r=".9"/>',
+  setup: '<path d="M2.4 4.6h6.4M11.6 4.6h2M2.4 11.4h2M7.2 11.4h6.4"/><circle cx="10.2" cy="4.6" r="1.4"/><circle cx="5.8" cy="11.4" r="1.4"/>',
   target: '<circle cx="8" cy="8" r="5.6"/><circle cx="8" cy="8" r="2.2"/>',
   flame: '<path d="M8 14.2c2.6 0 4.4-1.8 4.4-4.3 0-2.6-2-4.2-2.9-6.9-.9 1.3-1.2 2.4-1.2 3.4C7.5 5.3 6.6 4 6.4 2 4.6 3.7 3.6 6.4 3.6 9.9c0 2.5 1.8 4.3 4.4 4.3z"/>'
 };
@@ -2094,7 +2188,9 @@ document.getElementById("exportBtn").onclick = () => {
     version: 1,
     exportedAt: new Date().toISOString(),
     logs: loadLogs(),
-    photos: loadPhotos()
+    photos: loadPhotos(),
+    setups: loadSetups(),
+    bodyweight: loadBodyweightLog()
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -2137,6 +2233,17 @@ document.getElementById("importInput").onchange = event => {
     for (const name in (data.photos || {})) {
       if (!photos[name]) { photos[name] = data.photos[name]; newPhotos++; }
     }
+
+    // 設定メモと体重の記録は、新しく書いた方を残す
+    const mergeStamped = (key, incoming) => {
+      const cur = JSON.parse(localStorage.getItem(key) || "{}");
+      for (const k in (incoming || {})) {
+        if (!cur[k] || (incoming[k].at || "") > (cur[k].at || "")) cur[k] = incoming[k];
+      }
+      localStorage.setItem(key, JSON.stringify(cur));
+    };
+    mergeStamped(SETUP_KEY, data.setups);
+    mergeStamped(BODYWEIGHT_LOG_KEY, data.bodyweight);
 
     if (newLogs.length === 0 && newPhotos === 0) {
       alert(t("追加できる新しいデータはありませんでした。"));
@@ -2219,13 +2326,28 @@ function nextPlan(def) {
   const done = last.sets.filter(s => Number(s.reps) > 0);
   const cleared = done.length >= targetSets && done.every(s => Number(s.reps) >= repMax);
   const assist = def.name.includes("アシスト");
-  if (!cleared) return { kind: "same", weight: top, reps: repMax, assist };
   const step = stepFor(def.name);
+  if (!cleared) {
+    // 3回続けて同じ重量で回数の合計が増えていなければ、1段階軽くして回数を稼ぎ直す
+    const lighter = Math.round((top + (assist ? step : -step)) * 100) / 100;
+    if (isStalled(def.name, top) && lighter > 0) return { kind: "stall", weight: lighter, from: top, reps: repMax, assist };
+    return { kind: "same", weight: top, reps: repMax, assist };
+  }
   const weight = Math.max(0, Math.round((top + (assist ? -step : step)) * 100) / 100);
   return { kind: "up", weight, from: top, reps: repMax, assist };
 }
+function isStalled(name, top) {
+  const rows = exerciseHistory(name).slice(0, 3);
+  if (rows.length < 3) return false;
+  const topOf = r => Math.max(0, ...r.sets.map(x => Number(x.weight) || 0));
+  const reps = r => r.sets.reduce((n, x) => n + (Number(x.reps) || 0), 0);
+  return rows.every(r => topOf(r) === top) && reps(rows[0]) <= reps(rows[2]);
+}
 function planText(plan) {
   if (!plan) return "";
+  if (plan.kind === "stall") return plan.assist
+    ? t("3回続けて回数が伸びていません。補助を{a}→{w}kgに増やして、回数を稼ぎ直しましょう", { a: plan.from, w: plan.weight })
+    : t("3回続けて回数が伸びていません。{a}→{w}kgに下げて、回数を稼ぎ直しましょう", { a: plan.from, w: plan.weight });
   if (plan.kind === "same") return t("前回と同じ{w}kgで、全セット{r}回を目指しましょう", { w: plan.weight, r: plan.reps });
   return plan.assist
     ? t("前回は全セット{r}回できたので、補助を{a}→{w}kgに減らしています", { r: plan.reps, a: plan.from, w: plan.weight })
@@ -2235,16 +2357,39 @@ function planText(plan) {
 function newExercise(def) {
   const last = findLastRecord(def.name);
   const plan = nextPlan(def);
-  const prefill = plan && plan.kind === "up" ? String(plan.weight) : last ? last.sets[0].weight : "";
+  const prefill = plan && plan.kind !== "same" ? String(plan.weight) : last ? last.sets[0].weight : "";
   return {
     name: def.name,
     sets: Array.from({ length: parseTarget(def.target).sets }, () => ({ weight: prefill, reps: "" }))
   };
 }
 
+// 今日だけの入れ替え（swaps：{ 何番目: 種目名 }）を反映したメニュー。MENUS そのものは変えない
+function menuForDraft(menuId, log, swaps) {
+  const base = MENUS[menuId];
+  const menu = swaps && Object.keys(swaps).length
+    ? { ...base, exercises: base.exercises.map((def, i) => {
+        if (!swaps[i]) return def;
+        const alt = findExerciseDef(swaps[i]);
+        return { ...alt, target: alt.target || def.target, note: alt.note || "", swappedFrom: def.name };
+      }) }
+    : base;
+  return menuWithExtras(menu, log);
+}
+// 入れ替えの候補：今日のメニューに無い種目（前に使っていた種目も含む）。
+// 主に効く筋肉が重なるもの（same）を先に、それ以外（other）を後に出す
+function swapCandidates(def) {
+  const origin = def.swappedFrom || def.name;
+  const info = MUSCLES[origin];
+  const inMenu = new Set(currentMenu.exercises.map(d => d.name));
+  const pool = Object.keys(MUSCLES).filter(n => n !== origin && !inMenu.has(n));
+  const same = info ? pool.filter(n => MUSCLES[n].p.some(m => info.p.includes(m))) : [];
+  return { same, other: pool.filter(n => !same.includes(n)) };
+}
+
 // 保存前の下書きが、メニュー変更前の種目構成のままになっていたら、今のメニューに合わせて並べ直す
 function reconcileDraft(d) {
-  const menu = menuWithExtras(MENUS[d.menu], d.editingId ? findLogById(d.editingId) : null);
+  const menu = menuForDraft(d.menu, d.editingId ? findLogById(d.editingId) : null, d.swaps);
   const aligned = d.exercises.length === menu.exercises.length &&
                   d.exercises.every((e, i) => e.name === menu.exercises[i].name);
   if (!aligned) {
@@ -2263,6 +2408,7 @@ function renderWorkout(menuId, editLog) {
     (draft.editingId || null) === (editLog ? editLog.id : null);
 
   if (hasInput && sameTarget) {
+    currentMenu = menuForDraft(menuId, editLog, draft.swaps);
     document.getElementById("dateInput").value = draft.date;
     document.getElementById("dateInput").onchange = e => { draft.date = e.target.value; persistDraft(); };
     const memo = document.getElementById("memoInput");
@@ -2270,6 +2416,7 @@ function renderWorkout(menuId, editLog) {
     memo.oninput = e => { draft.memo = e.target.value; persistDraft(); };
     document.getElementById("saveBtn").textContent = t(draft.editingId ? "この内容で更新" : "この内容で保存");
     excludeLogId = editLog ? editLog.id : null;
+    drawPrevMemo();
     drawExercises();
     goTo({ s: "workout", menu: menuId, editId: editLog ? editLog.id : undefined });
     showScreen("workout", menuName(menuId));
@@ -2317,27 +2464,63 @@ function renderWorkout(menuId, editLog) {
   memoInput.oninput = e => { draft.memo = e.target.value; persistDraft(); };
   document.getElementById("saveBtn").textContent = t(editLog ? "この内容で更新" : "この内容で保存");
 
+  drawPrevMemo();
   drawExercises();
   goTo({ s: "workout", menu: menuId, editId: editLog ? editLog.id : undefined });
   showScreen("workout", menuName(menuId));
   updateProgress();
 }
 
-// ヘッダーのタイトルに進捗を出す（メニューC 3/7 のように。編集中は先頭に明記する）
+// 同じメニューの前回の記録にメモがあれば、記録画面の上に出す（新しく記録するときだけ）
+function drawPrevMemo() {
+  const box = document.getElementById("prevMemo");
+  const prev = draft.editingId ? null : sortedLogs().find(l => l.menu === draft.menu);
+  box.hidden = !(prev && prev.memo && prev.memo.trim());
+  if (box.hidden) return;
+  box.innerHTML = '<b>' + t("前回のメモ（{d}）", { d: formatDate(prev.date) }) + '</b><p></p>';
+  box.querySelector("p").textContent = prev.memo.trim();
+}
+
+// ヘッダーのタイトルに進捗を出す（メニューC 3/7 のように。編集中は先頭に明記する）。
+// 今日は飛ばした種目は、分母から外す
 function updateProgress() {
   if (!draft) return;
-  const done = draft.exercises.filter(
-    ex => ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0)
-  ).length;
+  const hasSet = ex => ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0);
+  const active = draft.exercises.filter(ex => !ex.skipped);
+  const done = active.filter(hasSet).length;
   const prefix = draft.editingId ? t("編集：") : "";
   titleEl.innerHTML = prefix + menuName(draft.menu) +
-    '<span class="count">' + done + " / " + draft.exercises.length + "</span>";
-  document.getElementById("woBar").style.width = (done / draft.exercises.length * 100) + "%";
+    '<span class="count">' + done + " / " + active.length + "</span>";
+  document.getElementById("woBar").style.width = (active.length ? done / active.length * 100 : 100) + "%";
   const chips = document.getElementById("woNav").children;
   draft.exercises.forEach((ex, i) => {
-    if (chips[i]) chips[i].classList.toggle("done", ex.sets.some(s => s.reps !== "" && Number(s.reps) > 0));
+    if (!chips[i]) return;
+    chips[i].classList.toggle("done", !ex.skipped && hasSet(ex));
+    chips[i].classList.toggle("skip", !!ex.skipped);
   });
   persistDraft();
+}
+
+// 今日だけ、その位置の種目を別の種目に替える（name を空にすると元に戻す）
+function swapExercise(index, name) {
+  draft.swaps = draft.swaps || {};
+  if (name) draft.swaps[index] = name; else delete draft.swaps[index];
+  currentMenu = menuForDraft(draft.menu, null, draft.swaps);
+  draft.exercises[index] = newExercise(currentMenu.exercises[index]);
+  collapsedNames.delete(currentMenu.exercises[index].name);
+  drawExercises();
+  updateProgress();
+}
+function setSkipped(index, on) {
+  draft.exercises[index].skipped = on || undefined;
+  drawExercises();
+  updateProgress();
+}
+function editSetup(name) {
+  const v = prompt(t("{n} のマシンの設定", { n: exName(name) }), setupText(name));
+  if (v === null) return;
+  saveSetup(name, v);
+  drawExercises();
 }
 
 function drawExercises() {
@@ -2379,21 +2562,66 @@ function drawExercises() {
     const info = document.createElement("div");
     info.className = "ex-info";
     const last = findLastRecord(def.name);
+    const setup = setupText(def.name);
+    const skipped = !!draft.exercises[exIndex].skipped;
     info.innerHTML =
       '<div class="ex-head"><b>' + exName(def.name) + '</b>' +
       '<span class="done" hidden>' + icon("check") + '</span>' +
       '<span class="target">' + (LANG === "en" ? def.target.replace("〜", "–") : def.target) + '</span>' +
+      (draft.editingId ? '' : '<span class="ex-more">' + icon("more") + '</span>') +
       '<span class="ex-chev">' + icon("chev") + '</span></div>' +
+      (def.swappedFrom ? '<span class="swap-note">' + t("今日だけ {n} の代わり", { n: exName(def.swappedFrom) }) + '</span>' : '') +
       '<div class="prev' + (last ? '' : ' none') + '">' +
       (last ? t("前回") + " " + formatDate(last.date) + "　" + formatSets(last.sets)
             : t(def.note || "初回：軽めの重量で軌道を確認")) +
       '</div>' +
+      (setup ? '<button class="setup">' + icon("setup") + '<span></span></button>' : '') +
       (!draft.editingId && nextPlan(def)
         ? '<div class="plan ' + nextPlan(def).kind + '">' + icon(nextPlan(def).kind === "up" ? "up" : "target") +
           '<span>' + planText(nextPlan(def)) + '</span></div>' : '') +
       '<div class="ex-summary"></div>';
     top.appendChild(info);
     card.appendChild(top);
+
+    // 設定メモは利用者の自由な文なので、textContent で入れる
+    const setupBtn = info.querySelector(".setup");
+    if (setupBtn) {
+      setupBtn.querySelector("span").textContent = setup;
+      setupBtn.onclick = e => { e.stopPropagation(); editSetup(def.name); };
+    }
+
+    // 「…」：端末標準の選択画面で、設定メモ・今日は飛ばす・今日だけ入れ替えを選ぶ
+    const more = info.querySelector(".ex-more");
+    if (more) {
+      const sel = document.createElement("select");
+      sel.setAttribute("aria-label", t("この種目の操作"));
+      const opt = (v, label, disabled) => '<option value="' + v + '"' + (disabled ? " disabled" : "") + '>' + label + '</option>';
+      const alts = swapCandidates(def);
+      sel.innerHTML =
+        '<option value="" disabled selected hidden>' + t("この種目の操作") + '</option>' +
+        '<optgroup label="' + t("この種目") + '">' +
+          opt("setup", t("マシンの設定をメモ")) +
+          opt(skipped ? "unskip" : "skip", t(skipped ? "飛ばすのをやめる" : "今日は飛ばす")) +
+        '</optgroup>' +
+        '<optgroup label="' + t("今日だけ入れ替え：同じ部位") + '">' +
+          (def.swappedFrom ? opt("unswap", t("元の種目に戻す") + "（" + exName(def.swappedFrom) + "）") : '') +
+          (alts.same.length ? alts.same.map(n => opt("swap:" + n, exName(n))).join("")
+                            : opt("none", t("同じ部位の種目はメニューに入っています"), true)) +
+        '</optgroup>' +
+        (alts.other.length ? '<optgroup label="' + t("今日だけ入れ替え：その他") + '">' +
+          alts.other.map(n => opt("swap:" + n, exName(n))).join("") + '</optgroup>' : '');
+      sel.onclick = e => e.stopPropagation();
+      sel.onchange = () => {
+        const v = sel.value;
+        sel.value = "";
+        if (v === "setup") editSetup(def.name);
+        else if (v === "skip") setSkipped(exIndex, true);
+        else if (v === "unskip") setSkipped(exIndex, false);
+        else if (v === "unswap") swapExercise(exIndex, null);
+        else if (v.startsWith("swap:")) swapExercise(exIndex, v.slice(5));
+      };
+      more.appendChild(sel);
+    }
 
     const setsBox = document.createElement("div");
     setsBox.className = "sets-box";
@@ -2432,7 +2660,10 @@ function drawExercises() {
       else collapsedNames.delete(def.name);
       info.setAttribute("aria-expanded", String(!on));
     }
-    info.onclick = () => { if (card.classList.contains("collapsed")) setCollapsed(false); };
+    info.onclick = () => {
+      if (skipped) setSkipped(exIndex, false);
+      else if (card.classList.contains("collapsed")) setCollapsed(false);
+    };
     nextBtn.onclick = () => {
       setCollapsed(true);
       // 畳んで高さが変わったあとの位置へスクロールさせる
@@ -2615,7 +2846,10 @@ function drawExercises() {
     drawSets();
     updateEstimate();
     updateDone();
-    if (collapsedNames.has(def.name) && !nextRow.hidden) setCollapsed(true);
+    if (skipped) {
+      card.classList.add("collapsed", "skipped");
+      summary.textContent = t("今日は飛ばします（タップで戻す）");
+    } else if (collapsedNames.has(def.name) && !nextRow.hidden) setCollapsed(true);
     else info.setAttribute("aria-expanded", "true");
     container.appendChild(card);
   });
@@ -2624,6 +2858,7 @@ function drawExercises() {
 document.getElementById("saveBtn").onclick = () => {
   // 回数が入っているセットだけを残す
   const exercises = draft.exercises
+    .filter(ex => !ex.skipped)
     .map(ex => ({
       name: ex.name,
       sets: ex.sets
@@ -2718,6 +2953,13 @@ function drawModal() {
   modalIllust.innerHTML = artHTML(modalExercise.name, photos);
   modalNote.textContent = modalExercise.note ? t(modalExercise.note) : "";
   photoDelete.hidden = !hasPhoto;
+  const setupInput = document.getElementById("setupInput");
+  setupInput.value = setupText(modalExercise.name);
+  const name = modalExercise.name;
+  setupInput.onchange = () => {
+    saveSetup(name, setupInput.value);
+    if (currentState.under === "workout" || currentScreen === "workout") drawExercises();
+  };
   drawModalMuscles();
   drawModalHistory();
 }
@@ -2987,6 +3229,78 @@ function drawVolumeChart(logs) {
     '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + t("週ごとの総挙上量") + '">' + bars + '</svg>';
 }
 
+// 記録ごとに、自己ベスト（推定1RM）を更新した種目を数える（初めての種目は数えない）。{ 記録id: [種目名] }
+function bestsByLog(allLogs) {
+  const best = {}, out = {};
+  for (const log of [...allLogs].reverse()) {
+    for (const ex of log.exercises) {
+      const b = bestOfSets(ex.sets);
+      if (!b) continue;
+      if (best[ex.name] !== undefined && b.value > best[ex.name]) (out[log.id] = out[log.id] || []).push(ex.name);
+      if (best[ex.name] === undefined || b.value > best[ex.name]) best[ex.name] = b.value;
+    }
+  }
+  return out;
+}
+
+// 今月のまとめ：回数・総挙上量（先月比）と、自己ベストを更新した種目
+function drawMonthSummary(logs, bests) {
+  const box = document.getElementById("monthSum");
+  const now = todayString().slice(0, 7);
+  const d = new Date(now + "-01T00:00:00"); d.setMonth(d.getMonth() - 1);
+  const prev = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  const of = key => logs.filter(l => l.date.slice(0, 7) === key);
+  const cur = of(now), last = of(prev);
+  box.hidden = cur.length === 0 && last.length === 0;
+  if (box.hidden) return;
+  const vol = list => list.reduce((v, l) => v + totalVolume(l.exercises), 0);
+  const names = [...new Set(cur.flatMap(l => bests[l.id] || []))];
+  const cmp = (a, b, fmt) => '<small class="' + (a > b ? "up" : "") + '">' + t("先月 {v}", { v: fmt(b) }) + '</small>';
+  const mon = "JanFebMarAprMayJunJulAugSepOctNovDec".substr((Number(now.slice(5)) - 1) * 3, 3);
+  box.innerHTML =
+    '<div class="head"><b>' + t("今月のまとめ") + '</b><span>' + t("{m}月の記録", { m: Number(now.slice(5)), mon }) + '</span></div>' +
+    '<div class="nums">' +
+      '<div>' + t("回数") + '<b>' + cur.length + '</b>' + cmp(cur.length, last.length, v => v) + '</div>' +
+      '<div>' + t("総挙上量") + '<b>' + (Math.round(vol(cur) / 100) / 10) + 't</b>' +
+        cmp(vol(cur), vol(last), v => (Math.round(v / 100) / 10) + "t") + '</div>' +
+      '<div>' + t("自己ベスト更新") + '<b class="' + (names.length ? "pb" : "") + '">' + names.length + '</b></div>' +
+    '</div>' +
+    (names.length ? '<p class="bests">★ ' + names.slice(0, 5).map(exName).join(LANG === "en" ? ", " : "・") +
+      (names.length > 5 ? t(" ほか{n}種目", { n: names.length - 5 }) : '') + '</p>' : '');
+}
+
+// 体重の推移（設定で体重を変えるたびに残る日付つきの記録）。2日分以上あるときだけ出す
+function drawBodyweightChart() {
+  const box = document.getElementById("bwChart");
+  const entries = Object.entries(loadBodyweightLog())
+    .map(([date, v]) => ({ date, kg: Number(v.kg), t: new Date(date + "T00:00:00").getTime() }))
+    .filter(e => e.kg > 0).sort((a, b) => a.t - b.t).slice(-30);
+  box.hidden = entries.length < 2 || historyFilter !== "all";
+  if (box.hidden) return;
+  const W = 320, H = 110, L = 4, R = 316, TOP = 14, BOT = 84;
+  const kgs = entries.map(e => e.kg);
+  let lo = Math.min(...kgs), hi = Math.max(...kgs);
+  if (hi - lo < 2) { const mid = (hi + lo) / 2; lo = mid - 1; hi = mid + 1; }
+  const t0 = entries[0].t, t1 = entries[entries.length - 1].t;
+  const x = e => L + (R - L) * (t1 === t0 ? 1 : (e.t - t0) / (t1 - t0));
+  const y = e => BOT - (BOT - TOP) * (e.kg - lo) / (hi - lo);
+  const pts = entries.map(e => x(e).toFixed(1) + "," + y(e).toFixed(1)).join(" ");
+  const first = entries[0], lastE = entries[entries.length - 1];
+  const diff = Math.round((lastE.kg - first.kg) * 10) / 10;
+  const md = e => Number(e.date.slice(5, 7)) + "/" + Number(e.date.slice(8));
+  box.innerHTML =
+    '<div class="head"><b>' + t("体重の推移") + '</b><span>' + lastE.kg + 'kg　' +
+      t("{d} から {v}kg", { d: md(first), v: (diff > 0 ? "+" : "") + diff }) + '</span></div>' +
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + t("体重の推移") + '">' +
+      '<line class="t-base" x1="0" x2="' + W + '" y1="' + BOT + '" y2="' + BOT + '"/>' +
+      '<polyline class="t-line" points="' + pts + '"/>' +
+      entries.map((e, i) => '<circle class="t-dot' + (i === entries.length - 1 ? " last" : "") + '" cx="' + x(e).toFixed(1) +
+        '" cy="' + y(e).toFixed(1) + '" r="3"><title>' + md(e) + " " + e.kg + 'kg</title></circle>').join("") +
+      '<text class="t-tick" x="' + L + '" y="' + (H - 8) + '">' + md(first) + '</text>' +
+      '<text class="t-tick" x="' + R + '" y="' + (H - 8) + '" text-anchor="end">' + md(lastE) + '</text>' +
+    '</svg>';
+}
+
 function renderHistory() {
   excludeLogId = null;
   const container = document.getElementById("logList");
@@ -3000,7 +3314,10 @@ function renderHistory() {
   }
   document.getElementById("historyFilterRow").hidden = (allLogs.length === 0);
   document.getElementById("historyHint").hidden = (logs.length === 0);
+  const bests = bestsByLog(allLogs);
+  drawMonthSummary(logs, bests);
   drawVolumeChart(logs);
+  drawBodyweightChart();
   if (logs.length === 0) {
     container.innerHTML = '<p class="empty">' +
       (allLogs.length === 0 ? t("まだ記録がありません。") : t("{m} の記録はまだありません。", { m: menuName(historyFilter) })) + '</p>';
@@ -3010,8 +3327,9 @@ function renderHistory() {
   const monthStats = {};
   for (const l of logs) {
     const key = l.date.slice(0, 7);
-    const st = monthStats[key] || (monthStats[key] = { count: 0, volume: 0 });
+    const st = monthStats[key] || (monthStats[key] = { count: 0, volume: 0, bests: new Set() });
     st.count++; st.volume += totalVolume(l.exercises);
+    for (const n of bests[l.id] || []) st.bests.add(n);
   }
 
   let currentMonth = null;
@@ -3025,7 +3343,8 @@ function renderHistory() {
       mh.className = "month-head";
       const mon = "JanFebMarAprMayJunJulAugSepOctNovDec".substr((Number(m) - 1) * 3, 3);
       mh.innerHTML = '<b>' + t("{y}年{m}月", { y, m: Number(m), mon }) + '</b>' +
-        '<span>' + t("{n}回", { n: st.count }) + ' · ' + st.volume.toLocaleString() + 'kg</span>';
+        '<span>' + t("{n}回", { n: st.count }) + ' · ' + st.volume.toLocaleString() + 'kg' +
+        (st.bests.size ? ' · <b class="pb">★' + t("ベスト更新 {n}", { n: st.bests.size }) + '</b>' : '') + '</span>';
       container.appendChild(mh);
     }
 
@@ -3108,7 +3427,7 @@ function renderHistory() {
 
 // ===== 起動 ===========================================================
 // 更新が端末に届いたかを確認するための版数。デプロイのたびに上げる。
-const APP_VERSION = "2026-11-16.2";
+const APP_VERSION = "2026-11-16.3";
 document.getElementById("appVersion").textContent = APP_VERSION;
 
 // ===== 保存忘れの通知 ==================================================
@@ -3127,7 +3446,7 @@ async function notifyUnsaved(wip) {
   try {
     const reg = await navigator.serviceWorker.ready;
     await reg.showNotification(t("保存忘れはありませんか？"), {
-      body, tag: "workout-unsaved", icon: "icons/icon-192-v3.png"
+      body, tag: "workout-unsaved", icon: "icons/icon-192-v4.png"
     });
   } catch (e) {
     // Service Worker が使えない環境向けの保険（デスクトップ版Chromeなど）

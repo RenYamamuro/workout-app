@@ -19,6 +19,9 @@ const firebaseConfig = {
 const SDK = "https://www.gstatic.com/firebasejs/12.18.0/";
 const LOGS_KEY = "workout-logs-v1";
 const PHOTOS_KEY = "workout-photos-v1";
+const SETUP_KEY = "workout-setup-v1";
+const BODYWEIGHT_KEY = "workout-bodyweight-v1";
+const BODYWEIGHT_LOG_KEY = "workout-bodyweight-log-v1";
 
 const card       = document.getElementById("cloudCard");
 const statusEl   = document.getElementById("cloudStatus");
@@ -105,6 +108,10 @@ async function syncNow() {
     status("同期中…");
     await syncLogs();
     await syncPhotos();
+    const setupsChanged = await syncStamped("setups", SETUP_KEY);
+    const bwChanged = await syncStamped("bodyweight", BODYWEIGHT_LOG_KEY);
+    if (bwChanged) applyLatestBodyweight();
+    if (setupsChanged || bwChanged) window.renderHome();
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
     status("✓ {t} 同期", { t: now });
   } catch (e) {
@@ -212,4 +219,45 @@ async function syncPhotos() {
     localStorage.setItem(PHOTOS_KEY, JSON.stringify(local));
     window.renderHome();
   }
+}
+
+// 種目ごとの設定メモと、日付ごとの体重。{ キー: { ..., at } } の形で、at が新しい方を両側に残す
+// （設定メモを空にした場合も at 付きで残っているので、消したことが他の端末にも伝わる）
+async function syncStamped(collection, key) {
+  const uid = currentUid;
+  const snap = await F.getDocs(F.collection(db, "users", uid, collection));
+  const remote = new Map();
+  snap.forEach(d => remote.set(d.id, d.data()));
+
+  let local;
+  try { local = JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { local = {}; }
+  const newer = (a, b) => (a.at || "") > (b.at || "");
+
+  const batch = F.writeBatch(db);
+  let writes = 0;
+  for (const k in local) {
+    if (!remote.has(k) || newer(local[k], remote.get(k))) {
+      batch.set(F.doc(db, "users", uid, collection, k), local[k]);
+      writes++;
+    }
+  }
+  if (writes) await batch.commit();
+
+  let changed = false;
+  remote.forEach((data, k) => {
+    if (!local[k] || newer(data, local[k])) { local[k] = data; changed = true; }
+  });
+  if (changed) localStorage.setItem(key, JSON.stringify(local));
+  return changed;
+}
+
+// 他の端末で体重を更新していたら、いちばん新しい日付の値を今の体重にする
+function applyLatestBodyweight() {
+  let log;
+  try { log = JSON.parse(localStorage.getItem(BODYWEIGHT_LOG_KEY)) || {}; } catch (e) { return; }
+  const latest = Object.keys(log).sort().pop();
+  if (!latest || !(Number(log[latest].kg) > 0)) return;
+  localStorage.setItem(BODYWEIGHT_KEY, String(log[latest].kg));
+  const input = document.getElementById("bodyweightInput");
+  if (input && document.activeElement !== input) input.value = log[latest].kg;
 }

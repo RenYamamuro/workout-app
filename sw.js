@@ -4,7 +4,7 @@
 const CACHE = "workout-cache-v1";
 const ASSETS = ["./", "./index.html", "./firebase-sync.js", "./manifest.json",
                 "./fonts/nunito-latin.woff2", "./fonts/mplus.css",
-                "./icons/icon-192-v3.png", "./icons/icon-512-v3.png"];
+                "./icons/icon-192-v4.png", "./icons/icon-512-v4.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
